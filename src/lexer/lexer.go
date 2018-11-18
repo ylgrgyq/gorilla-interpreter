@@ -1,44 +1,40 @@
 package lexer
 
 import (
-	"fmt"
 	"token"
 	"unicode"
 	"unicode/utf8"
 )
 
-type LexerParseError struct {
-	Line   int
-	Column int
-	Msg    string
-}
-
-func (l LexerParseError) Error() string {
-	return fmt.Sprintf("%s at line: %d, column: %d", l.Msg, l.Line, l.Column)
-}
+// ErrorHandler is used to handle error encountered during parsing input string
+type ErrorHandler func(line, column int, msg string)
 
 // A Lexer holding the state while scanning the input string
 type Lexer struct {
-	input        []byte // the byte array being scanned
-	position     int    // the offset of the character current reading
-	readPosition int    // offset after current reading character
-	ch           rune   // current character
+	input        []byte       // the byte array being scanned
+	position     int          // the offset of the character current reading
+	readPosition int          // offset after current reading character
+	ch           rune         // current character
+	errorHandler ErrorHandler // function to handle error
 
 	line   int // the line number for current reading character in the input string
 	column int // the column nuber for current reading character in the input string
 
-	ErrorList []string
+	ErrorCount int
 }
 
 // New create a Lexer to scan the input string
-func New(input string) *Lexer {
-	l := &Lexer{input: []byte(input), line: 1, column: 0}
+func New(input string, errHandler ErrorHandler) *Lexer {
+	l := &Lexer{input: []byte(input), line: 1, column: 0, errorHandler: errHandler}
 	l.readRune()
 	return l
 }
 
-func (l *Lexer) error(msg string) {
-	l.ErrorList = append(l.ErrorList, msg)
+func (l *Lexer) error(line, column int, msg string) {
+	if l.errorHandler != nil {
+		l.errorHandler(line, column, msg)
+	}
+	l.ErrorCount++
 }
 
 // token0 is the default token type for current l.ch
@@ -152,7 +148,7 @@ func (l *Lexer) NextToken() (tok token.Token) {
 		case 0:
 			tok = newToken(token.EOF, "")
 		default:
-			panic(LexerParseError{Msg: "Unrecognized character", Line: line, Column: column})
+			l.error(line, column, "Unrecognized character")
 		}
 	}
 
@@ -169,13 +165,13 @@ Loop:
 	for {
 		switch l.ch {
 		case 0:
-			panic(LexerParseError{Msg: "EOF while reading string", Line: startLine, Column: startColumn})
+			l.error(startLine, startColumn, "EOF while reading string")
 		case '\\':
 			l.readRune()
 			var nextCh rune
 			switch l.ch {
 			case 0:
-				panic(LexerParseError{Msg: "EOF while reading string", Line: startLine, Column: startColumn})
+				l.error(startLine, startColumn, "EOF while reading string")
 			case 't':
 				nextCh = '\t'
 			case 'n':
@@ -189,7 +185,7 @@ Loop:
 			case '\\':
 				nextCh = '\\'
 			default:
-				panic(LexerParseError{Msg: "Unsupported escape character", Line: l.line, Column: l.column})
+				l.error(l.line, l.column, "Unsupported escape character")
 			}
 
 			ret = append(ret, nextCh)
@@ -214,7 +210,7 @@ func (l *Lexer) readRune() {
 			l.ch, size = utf8.DecodeRune(l.input[l.readPosition:])
 
 			if l.ch == utf8.RuneError {
-				panic(LexerParseError{Msg: "illegal utf-8 encoding"})
+				l.error(l.line, l.column, "illegal utf-8 encoding")
 			}
 		}
 	}

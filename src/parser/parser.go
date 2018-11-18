@@ -38,7 +38,10 @@ type Parser struct {
 }
 
 func New(input string) *Parser {
-	p := Parser{lex: lexer.New(input),
+	handler := func(line, column int, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	}
+	p := Parser{lex: lexer.New(input, handler),
 		prefixFns: make(map[token.TokenType]prefixParseFn),
 		infixFns:  make(map[token.TokenType]infixParseFn)}
 

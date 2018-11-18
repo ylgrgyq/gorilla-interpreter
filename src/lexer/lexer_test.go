@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"testing"
 	"token"
 )
@@ -81,7 +82,10 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, "", 14, 2},
 	}
 
-	l := New(input)
+	handler := func(line, column int, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	}
+	l := New(input, handler)
 	for _, test := range tests {
 		testLexer(t, l, test.expectedType, test.expectedLiteral, test.expectedLine, test.expectedColumn)
 	}
@@ -314,7 +318,10 @@ func TestOperatorToken(t *testing.T) {
 		{token.EOF, "", 40, 2},
 	}
 
-	l := New(input)
+	handler := func(line, column int, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	}
+	l := New(input, handler)
 	for _, test := range tests {
 		testLexer(t, l, test.expectedType, test.expectedLiteral, test.expectedLine, test.expectedColumn)
 	}
@@ -334,8 +341,12 @@ func TestLexerError(t *testing.T) {
 		{`"哈哈哈\x哈\"`, "Unsupported escape character at line: 1, column: 6"},
 	}
 
+	handler := func(line, column int, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	}
+
 	for _, test := range tests {
-		l := New(test.input)
+		l := New(test.input, handler)
 		testError(t, l, test.errorMsg)
 	}
 }
@@ -343,12 +354,8 @@ func TestLexerError(t *testing.T) {
 func testError(t *testing.T, l *Lexer, expectErrorMsg string) {
 	defer func() {
 		if r := recover(); r != nil {
-			err, ok := r.(LexerParseError)
-			if !ok {
-				t.Errorf("%q - panic without LexerParseError, got %q", l.lineAtPosition(), r)
-			}
-			if err.Error() != expectErrorMsg {
-				t.Errorf("%q - token Literal wrong. expected %q, got %q", l.lineAtPosition(), expectErrorMsg, err.Error())
+			if r != expectErrorMsg {
+				t.Errorf("%q - token Literal wrong. expected %q, got %q", l.lineAtPosition(), expectErrorMsg, r)
 			}
 		}
 	}()
