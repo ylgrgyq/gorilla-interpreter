@@ -109,6 +109,24 @@ func TestOperatorToken(t *testing.T) {
 	{a:1, b:2}
 
 	5 <= 10 >= 5;
+	a -= 10
+	a += 10
+	a /= 10
+	a *= 10
+	a % 10
+	a %= 10
+	5 || 10
+	5 && 10
+	5 & 10
+	5 | 10
+	5 ^ 10
+	a |= 5
+	b &= 5
+	b ^= 10
+	a << 5
+	a >> 10
+	a <<= 5
+	a >>= 10
 	`
 	tests := []struct {
 		expectedType    token.TokenType
@@ -206,7 +224,28 @@ func TestOperatorToken(t *testing.T) {
 		{token.INT, "2", 19, 10},
 		{token.RBRACE, "}", 19, 11},
 
-		// 5 <= 10 >= 5;
+		/*
+			5 <= 10 >= 5;
+			a -= 10
+			a += 10
+			a /= 10
+			a *= 10
+			a % 10
+			a %= 10
+			5 || 10
+			5 && 10
+			5 & 10
+			5 | 10
+			5 ^ 10
+			a |= 5
+			b &= 5
+			b ^= 10
+			a << 5
+			a >> 10
+			a <<= 5
+			a >>= 10
+		*/
+
 		{token.INT, "5", 21, 2},
 		{token.LTE, "<=", 21, 4},
 		{token.INT, "10", 21, 7},
@@ -214,7 +253,65 @@ func TestOperatorToken(t *testing.T) {
 		{token.INT, "5", 21, 13},
 		{token.SEMICOLON, ";", 21, 14},
 
-		{token.EOF, "", 22, 2},
+		{token.IDENT, "a", 22, 2},
+		{token.MINUS_ASSIGN, "-=", 22, 4},
+		{token.INT, "10", 22, 7},
+		{token.IDENT, "a", 23, 2},
+		{token.PLUS_ASSIGN, "+=", 23, 4},
+		{token.INT, "10", 23, 7},
+		{token.IDENT, "a", 24, 2},
+		{token.DIVIDE_ASSIGN, "/=", 24, 4},
+		{token.INT, "10", 24, 7},
+		{token.IDENT, "a", 25, 2},
+		{token.ASTERISK_ASSIGN, "*=", 25, 4},
+		{token.INT, "10", 25, 7},
+		{token.IDENT, "a", 26, 2},
+		{token.REM, "%", 26, 4},
+		{token.INT, "10", 26, 6},
+		{token.IDENT, "a", 27, 2},
+		{token.REM_ASSIGN, "%=", 27, 4},
+		{token.INT, "10", 27, 7},
+		{token.INT, "5", 28, 2},
+		{token.LOR, "||", 28, 4},
+		{token.INT, "10", 28, 7},
+		{token.INT, "5", 29, 2},
+		{token.LAND, "&&", 29, 4},
+		{token.INT, "10", 29, 7},
+
+		{token.INT, "5", 30, 2},
+		{token.AND, "&", 30, 4},
+		{token.INT, "10", 30, 6},
+		{token.INT, "5", 31, 2},
+		{token.OR, "|", 31, 4},
+		{token.INT, "10", 31, 6},
+
+		{token.INT, "5", 32, 2},
+		{token.XOR, "^", 32, 4},
+		{token.INT, "10", 32, 6},
+		{token.IDENT, "a", 33, 2},
+		{token.OR_ASSIGN, "|=", 33, 4},
+		{token.INT, "5", 33, 7},
+		{token.IDENT, "b", 34, 2},
+		{token.AND_ASSIGN, "&=", 34, 4},
+		{token.INT, "5", 34, 7},
+
+		{token.IDENT, "b", 35, 2},
+		{token.XOR_ASSIGN, "^=", 35, 4},
+		{token.INT, "10", 35, 7},
+		{token.IDENT, "a", 36, 2},
+		{token.LSHIFT, "<<", 36, 4},
+		{token.INT, "5", 36, 7},
+		{token.IDENT, "a", 37, 2},
+		{token.RSHIFT, ">>", 37, 4},
+		{token.INT, "10", 37, 7},
+		{token.IDENT, "a", 38, 2},
+		{token.LSHIFT_ASSIGN, "<<=", 38, 4},
+		{token.INT, "5", 38, 8},
+		{token.IDENT, "a", 39, 2},
+		{token.RSHIFT_ASSIGN, ">>=", 39, 4},
+		{token.INT, "10", 39, 8},
+
+		{token.EOF, "", 40, 2},
 	}
 
 	l := New(input)

@@ -68,13 +68,34 @@ func (l *Lexer) switch3(ch rune, token0, token1 token.TokenType, ch2 rune, token
 	return newToken(token0, string(ch))
 }
 
+func (l *Lexer) switch4(ch rune, token0, token1 token.TokenType, ch2 rune, token2 token.TokenType, token3 token.TokenType) token.Token {
+	if l.ch == '=' {
+		tok := newToken(token1, string([]rune{ch, l.ch}))
+		l.readRune()
+		return tok
+	}
+
+	if l.ch == ch2 {
+		l.readRune()
+		if l.ch == '=' {
+			tok := newToken(token3, string([]rune{ch, ch2, l.ch}))
+			l.readRune()
+			return tok
+		}
+
+		tok := newToken(token2, string([]rune{ch, ch2}))
+		return tok
+	}
+
+	return newToken(token0, string(ch))
+}
+
 // NextToken scan and return the next token parsed from the input string
-func (l *Lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() (tok token.Token) {
 	l.skipWhiteSpaces()
 
 	line := l.line
 	column := l.column
-	var tok token.Token
 	switch ch := l.ch; {
 	case isLetter(ch):
 		literal := l.readIdentifier()
@@ -89,9 +110,9 @@ func (l *Lexer) NextToken() token.Token {
 		case '!':
 			tok = l.switch2('!', token.BANG, token.NOTEQ)
 		case '<':
-			tok = l.switch2('<', token.LT, token.LTE)
+			tok = l.switch4('<', token.LT, token.LTE, '<', token.LSHIFT, token.LSHIFT_ASSIGN)
 		case '>':
-			tok = l.switch2('>', token.GT, token.GTE)
+			tok = l.switch4('>', token.GT, token.GTE, '>', token.RSHIFT, token.RSHIFT_ASSIGN)
 		case '*':
 			tok = l.switch2('*', token.ASTERISK, token.ASTERISK_ASSIGN)
 		case '-':
@@ -100,6 +121,14 @@ func (l *Lexer) NextToken() token.Token {
 			tok = l.switch3('+', token.PLUS, token.PLUS_ASSIGN, '+', token.PLUSPLUS)
 		case '/':
 			tok = l.switch2('/', token.DIVIDE, token.DIVIDE_ASSIGN)
+		case '%':
+			tok = l.switch2('%', token.REM, token.REM_ASSIGN)
+		case '|':
+			tok = l.switch3('|', token.OR, token.OR_ASSIGN, '|', token.LOR)
+		case '&':
+			tok = l.switch3('&', token.AND, token.AND_ASSIGN, '&', token.LAND)
+		case '^':
+			tok = l.switch2('^', token.XOR, token.XOR_ASSIGN)
 		case ';':
 			tok = newToken(token.SEMICOLON, ";")
 		case '[':

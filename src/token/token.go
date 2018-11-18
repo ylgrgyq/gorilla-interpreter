@@ -42,6 +42,12 @@ const (
 	LSHIFT = "<<"
 	RSHIFT = ">>"
 
+	OR_ASSIGN     = "|="
+	AND_ASSIGN    = "&="
+	XOR_ASSIGN    = "^="
+	LSHIFT_ASSIGN = "<<="
+	RSHIFT_ASSIGN = ">>="
+
 	LOR  = "||"
 	LAND = "&&"
 
@@ -72,6 +78,7 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+	NULL     = "NULL"
 )
 
 var keywords = map[string]TokenType{
@@ -82,6 +89,7 @@ var keywords = map[string]TokenType{
 	"else":   ELSE,
 	"true":   TRUE,
 	"false":  FALSE,
+	"null":   NULL,
 }
 
 func LookupIdent(ident string) TokenType {
