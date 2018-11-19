@@ -20,10 +20,11 @@ type (
 type ParserError struct {
 	errorToken token.Token
 	msg        string
+	pos        token.Position
 }
 
 func (p ParserError) Error() string {
-	return fmt.Sprintf("%s at line: %d, column: %d", p.msg, p.errorToken.Line, p.errorToken.Column)
+	return fmt.Sprintf("%s at line: %d, column: %d", p.msg, p.pos.Line, p.pos.Column)
 }
 
 type Parser struct {
@@ -38,8 +39,8 @@ type Parser struct {
 }
 
 func New(input string) *Parser {
-	handler := func(line, column int, msg string) {
-		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	handler := func(pos token.Position, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, pos.Line, pos.Column))
 	}
 	p := Parser{lex: lexer.New(input, handler),
 		prefixFns: make(map[token.TokenType]prefixParseFn),
@@ -60,13 +61,32 @@ func New(input string) *Parser {
 	p.registerPrefixParseFn(token.LPAREN, p.parseGroupedExpression)
 
 	p.registerInfixParseFn(token.MINUS, p.parseInfix)
+	p.registerInfixParseFn(token.MINUS_ASSIGN, p.parseInfix)
 	p.registerInfixParseFn(token.PLUS, p.parseInfix)
+	p.registerInfixParseFn(token.PLUS_ASSIGN, p.parseInfix)
 	p.registerInfixParseFn(token.DIVIDE, p.parseInfix)
+	p.registerInfixParseFn(token.DIVIDE_ASSIGN, p.parseInfix)
 	p.registerInfixParseFn(token.ASTERISK, p.parseInfix)
+	p.registerInfixParseFn(token.ASTERISK_ASSIGN, p.parseInfix)
+	p.registerInfixParseFn(token.REM, p.parseInfix)
+	p.registerInfixParseFn(token.REM_ASSIGN, p.parseInfix)
+	p.registerInfixParseFn(token.OR, p.parseInfix)
+	p.registerInfixParseFn(token.OR_ASSIGN, p.parseInfix)
+	p.registerInfixParseFn(token.AND, p.parseInfix)
+	p.registerInfixParseFn(token.AND_ASSIGN, p.parseInfix)
+	p.registerInfixParseFn(token.LAND, p.parseInfix)
+	p.registerInfixParseFn(token.LOR, p.parseInfix)
+	p.registerInfixParseFn(token.LSHIFT, p.parseInfix)
+	p.registerInfixParseFn(token.LSHIFT_ASSIGN, p.parseInfix)
+	p.registerInfixParseFn(token.RSHIFT, p.parseInfix)
+	p.registerInfixParseFn(token.RSHIFT_ASSIGN, p.parseInfix)
+
 	p.registerInfixParseFn(token.EQ, p.parseInfix)
 	p.registerInfixParseFn(token.NOTEQ, p.parseInfix)
 	p.registerInfixParseFn(token.LT, p.parseInfix)
+	p.registerInfixParseFn(token.LTE, p.parseInfix)
 	p.registerInfixParseFn(token.GT, p.parseInfix)
+	p.registerInfixParseFn(token.GTE, p.parseInfix)
 	p.registerInfixParseFn(token.PLUSPLUS, p.parsePostfix)
 	p.registerInfixParseFn(token.MINUSMINUS, p.parsePostfix)
 	p.registerInfixParseFn(token.LPAREN, p.parseCallExpression)

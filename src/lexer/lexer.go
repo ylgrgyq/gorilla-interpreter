@@ -7,32 +7,31 @@ import (
 )
 
 // ErrorHandler is used to handle error encountered during parsing input string
-type ErrorHandler func(line, column int, msg string)
+type ErrorHandler func(pos token.Position, msg string)
 
 // A Lexer holding the state while scanning the input string
 type Lexer struct {
 	input        []byte       // the byte array being scanned
-	position     int          // the offset of the character current reading
-	readPosition int          // offset after current reading character
+	offset       int          // the offset of the character current reading
+	readOffset   int          // offset after current reading character
 	ch           rune         // current character
 	errorHandler ErrorHandler // function to handle error
 
-	line   int // the line number for current reading character in the input string
-	column int // the column nuber for current reading character in the input string
+	pos token.Position // the position for current reading character in the input string
 
 	ErrorCount int
 }
 
 // New create a Lexer to scan the input string
 func New(input string, errHandler ErrorHandler) *Lexer {
-	l := &Lexer{input: []byte(input), line: 1, column: 0, errorHandler: errHandler}
+	l := &Lexer{input: []byte(input), pos: token.Position{Line: 1, Column: 0}, errorHandler: errHandler}
 	l.readRune()
 	return l
 }
 
-func (l *Lexer) error(line, column int, msg string) {
+func (l *Lexer) error(pos token.Position, msg string) {
 	if l.errorHandler != nil {
-		l.errorHandler(line, column, msg)
+		l.errorHandler(pos, msg)
 	}
 	l.ErrorCount++
 }
@@ -90,8 +89,7 @@ func (l *Lexer) switch4(ch rune, token0, token1 token.TokenType, ch2 rune, token
 func (l *Lexer) NextToken() (tok token.Token) {
 	l.skipWhiteSpaces()
 
-	line := l.line
-	column := l.column
+	pos := l.pos
 	switch ch := l.ch; {
 	case isLetter(ch):
 		literal := l.readIdentifier()
@@ -148,30 +146,28 @@ func (l *Lexer) NextToken() (tok token.Token) {
 		case 0:
 			tok = newToken(token.EOF, "")
 		default:
-			l.error(line, column, "Unrecognized character")
+			l.error(pos, "Unrecognized character")
 		}
 	}
 
-	tok.Column = column
-	tok.Line = line
+	tok.Pos = pos
 	return tok
 }
 
 func (l *Lexer) readString() token.Token {
-	startLine := l.line
-	startColumn := l.column
+	pos := l.pos
 	var ret []rune
 Loop:
 	for {
 		switch l.ch {
 		case 0:
-			l.error(startLine, startColumn, "EOF while reading string")
+			l.error(pos, "EOF while reading string")
 		case '\\':
 			l.readRune()
 			var nextCh rune
 			switch l.ch {
 			case 0:
-				l.error(startLine, startColumn, "EOF while reading string")
+				l.error(pos, "EOF while reading string")
 			case 't':
 				nextCh = '\t'
 			case 'n':
@@ -185,7 +181,7 @@ Loop:
 			case '\\':
 				nextCh = '\\'
 			default:
-				l.error(l.line, l.column, "Unsupported escape character")
+				l.error(l.pos, "Unsupported escape character")
 			}
 
 			ret = append(ret, nextCh)
@@ -202,25 +198,24 @@ Loop:
 
 func (l *Lexer) readRune() {
 	size := 1
-	if l.readPosition >= len(l.input) {
+	if l.readOffset >= len(l.input) {
 		l.ch = 0
 	} else {
-		l.ch = rune(l.input[l.readPosition])
+		l.ch = rune(l.input[l.readOffset])
 		if l.ch >= utf8.RuneSelf {
-			l.ch, size = utf8.DecodeRune(l.input[l.readPosition:])
+			l.ch, size = utf8.DecodeRune(l.input[l.readOffset:])
 
 			if l.ch == utf8.RuneError {
-				l.error(l.line, l.column, "illegal utf-8 encoding")
+				l.error(l.pos, "illegal utf-8 encoding")
 			}
 		}
 	}
-	l.position = l.readPosition
-	l.readPosition += size
-	l.column++
+	l.offset = l.readOffset
+	l.readOffset += size
+	l.pos.AddColumn()
 
 	if l.ch == '\n' || l.ch == '\r' {
-		l.column = 0
-		l.line++
+		l.pos.AddLine()
 	}
 }
 
@@ -239,11 +234,11 @@ func isLetter(ch rune) bool {
 }
 
 func (l *Lexer) readIdentifier() string {
-	pos := l.position
+	pos := l.offset
 	for isLetter(l.ch) {
 		l.readRune()
 	}
-	return string(l.input[pos:l.position])
+	return string(l.input[pos:l.offset])
 }
 
 func isDigit(ch rune) bool {
@@ -251,11 +246,11 @@ func isDigit(ch rune) bool {
 }
 
 func (l *Lexer) readInt() string {
-	pos := l.position
+	pos := l.offset
 	l.readRune()
 	for isDigit(l.ch) {
 		l.readRune()
 	}
 
-	return string(l.input[pos:l.position])
+	return string(l.input[pos:l.offset])
 }

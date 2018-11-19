@@ -82,8 +82,8 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, "", 14, 2},
 	}
 
-	handler := func(line, column int, msg string) {
-		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	handler := func(pos token.Position, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, pos.Line, pos.Column))
 	}
 	l := New(input, handler)
 	for _, test := range tests {
@@ -318,8 +318,8 @@ func TestOperatorToken(t *testing.T) {
 		{token.EOF, "", 40, 2},
 	}
 
-	handler := func(line, column int, msg string) {
-		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	handler := func(pos token.Position, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, pos.Line, pos.Column))
 	}
 	l := New(input, handler)
 	for _, test := range tests {
@@ -341,8 +341,8 @@ func TestLexerError(t *testing.T) {
 		{`"哈哈哈\x哈\"`, "Unsupported escape character at line: 1, column: 6"},
 	}
 
-	handler := func(line, column int, msg string) {
-		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, line, column))
+	handler := func(pos token.Position, msg string) {
+		panic(fmt.Sprintf("%s at line: %d, column: %d", msg, pos.Line, pos.Column))
 	}
 
 	for _, test := range tests {
@@ -379,19 +379,19 @@ func testLexer(t *testing.T, l *Lexer, expectedType token.TokenType, expectedLit
 			l.lineAtPosition(), expectedLiteral, tk.Literal)
 	}
 
-	if tk.Line != expectedLine {
+	if tk.Pos.Line != expectedLine {
 		t.Fatalf("%q - token line wrong. expected=%d, got=%d",
-			l.lineAtPosition(), expectedLine, tk.Line)
+			l.lineAtPosition(), expectedLine, tk.Pos.Line)
 	}
 
-	if tk.Column != expectedColumn {
+	if tk.Pos.Column != expectedColumn {
 		t.Fatalf("%q - token column wrong. expect token %q with literal %q at %d, got=%d",
-			l.lineAtPosition(), expectedType, expectedLiteral, expectedColumn, tk.Column)
+			l.lineAtPosition(), expectedType, expectedLiteral, expectedColumn, tk.Pos.Column)
 	}
 }
 
 func (l *Lexer) lineAtPosition() string {
-	start := l.position
+	start := l.offset
 	if start == len(l.input) {
 		start--
 	}
@@ -400,7 +400,7 @@ func (l *Lexer) lineAtPosition() string {
 		start--
 	}
 
-	end := l.position
+	end := l.offset
 	for end < len(l.input) && l.input[end] != '\n' && l.input[end] != '\r' {
 		end++
 	}
