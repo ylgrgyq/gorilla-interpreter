@@ -169,6 +169,10 @@ func LookupIdent(ident string) TokenType {
 	return IDENT
 }
 
+const (
+	LOWEST_PRECEDENCE = 0
+)
+
 // Precedence get precedence of the operator tokens
 func (op Token) Precedence() int {
 	switch op.Type {
@@ -189,7 +193,7 @@ func (op Token) Precedence() int {
 	case LBRACKET:
 		return 8
 	}
-	return 0
+	return LOWEST_PRECEDENCE
 }
 
 func GetPrefixOperators() (ops []TokenType) {

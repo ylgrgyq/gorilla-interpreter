@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestLetParseStatement(t *testing.T) {
+func TestLetStatement(t *testing.T) {
 	tests := []struct {
 		input                    string
 		expectedIdentifier       string
@@ -450,6 +450,7 @@ func testBooleanExpression(t *testing.T, expression ast.Expression, v bool) bool
 
 func parseTestingProgram(t *testing.T, input string, expectedStatementCount int) *ast.Program {
 	par := New(input)
+	par.tracing = true
 
 	program, err := par.ParseProgram()
 	if err != nil {

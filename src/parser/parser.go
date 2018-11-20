@@ -8,10 +8,6 @@ import (
 	"token"
 )
 
-const (
-	LOWEST_PRECEDENCE = 0
-)
-
 type (
 	prefixParseFn func() ast.Expression
 	infixParseFn  func(ast.Expression) ast.Expression
@@ -30,6 +26,9 @@ func (p ParserError) Error() string {
 type Parser struct {
 	lex         *lexer.Lexer
 	initialized bool
+
+	tracing     bool
+	traceIndent int
 
 	currentToken token.Token
 	peekToken    token.Token
@@ -90,7 +89,37 @@ func (p *Parser) nextToken() token.Token {
 	return p.currentToken
 }
 
+func (p *Parser) printTrace(a ...interface{}) {
+	const dots = ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . "
+	const n = len(dots)
+	pos := p.currentToken.Pos
+	fmt.Printf("%5d:%3d: ", pos.Line, pos.Column)
+	i := 2 * p.traceIndent
+	for i > n {
+		fmt.Print(dots)
+		i -= n
+	}
+	// i <= n
+	fmt.Print(dots[0:i])
+	fmt.Println(a...)
+}
+
+func trace(p *Parser, msg string) *Parser {
+	p.printTrace(msg, "(")
+	p.traceIndent++
+	return p
+}
+
+func un(p *Parser) {
+	p.traceIndent--
+	p.printTrace(")")
+}
+
 func (p *Parser) ParseProgram() (program *ast.Program, err error) {
+	if p.tracing {
+		defer un(trace(p, "Program"))
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -137,6 +166,10 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
+	if p.tracing {
+		defer un(trace(p, "LetStatement"))
+	}
+
 	letStatement := &ast.LetStatement{Token: p.currentToken}
 
 	p.assertNextTokenType(token.IDENT)
@@ -147,7 +180,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 	// skip ASSIGN token and point currentToken to the start of the next expression
 	p.nextToken()
-	express := p.parseExpression(LOWEST_PRECEDENCE)
+	express := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 	letStatement.Value = express
 
@@ -159,12 +192,16 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	if p.tracing {
+		defer un(trace(p, "ReturnStatement"))
+	}
+
 	retStatement := &ast.ReturnStatement{Token: p.currentToken}
 
 	if !p.nextTokenTypeIs(token.SEMICOLON) {
 		p.nextToken()
 
-		express := p.parseExpression(LOWEST_PRECEDENCE)
+		express := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 		retStatement.Value = express
 	}
@@ -179,7 +216,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	express := &ast.ExpressionStatement{Token: p.currentToken}
 
-	value := p.parseExpression(LOWEST_PRECEDENCE)
+	value := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 	express.Value = value
 
@@ -191,6 +228,10 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 func (p *Parser) parseAssignStatement() *ast.AssignStatement {
+	if p.tracing {
+		defer un(trace(p, "AssignStatement"))
+	}
+
 	assign := &ast.AssignStatement{Token: p.currentToken}
 
 	ident := &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
@@ -198,7 +239,7 @@ func (p *Parser) parseAssignStatement() *ast.AssignStatement {
 	p.assertNextTokenType(token.ASSIGN)
 
 	p.nextToken()
-	value := p.parseExpression(LOWEST_PRECEDENCE)
+	value := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 	p.assertNextTokenType(token.SEMICOLON)
 
@@ -212,6 +253,10 @@ func (p *Parser) parseAssignStatement() *ast.AssignStatement {
 比如 if 表达式开始解析的时候要保证 current token 指向 if，结束时保证 current token 指向 }
 */
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "Expression"))
+	}
+
 	prefixFn := p.prefixFns[p.currentToken.Type]
 	if prefixFn == nil {
 		panic(ParserError{msg: fmt.Sprintf("can not parse token type %q", p.currentToken.Type), errorToken: p.currentToken})
@@ -297,6 +342,10 @@ func (p *Parser) parseString() ast.Expression {
 }
 
 func (p *Parser) parsePrefix() ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "Prefix"))
+	}
+
 	prefix := &ast.PrefixExpression{Token: p.currentToken, Operator: p.currentToken.Literal}
 
 	precedence := p.currentTokenPrecedence()
@@ -312,6 +361,10 @@ func (p *Parser) parsePrefix() ast.Expression {
 
 // when called p.currentToken must point to a infix operator
 func (p *Parser) parseInfix(left ast.Expression) ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "Infix"))
+	}
+
 	infix := &ast.InfixExpression{Token: p.currentToken, Left: left, Operator: p.currentToken.Literal}
 
 	precedence := p.currentTokenPrecedence()
@@ -325,13 +378,21 @@ func (p *Parser) parseInfix(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parsePostfix(left ast.Expression) ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "Postfix"))
+	}
+
 	return &ast.PostfixExpression{Token: p.currentToken, Left: left, Operator: p.currentToken.Literal}
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "GroupedExpression"))
+	}
+
 	p.assertCurrentTokenType(token.LPAREN)
 
-	expression := p.parseExpression(LOWEST_PRECEDENCE)
+	expression := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 	p.assertNextTokenType(token.RPAREN)
 
@@ -339,6 +400,10 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 }
 
 func (p *Parser) parseIfExpression() ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "IfExpression"))
+	}
+
 	ifExpress := &ast.IfExpression{Token: p.currentToken}
 
 	if !p.currentTokenTypeIs(token.IF) {
@@ -347,7 +412,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 
 	p.assertNextTokenType(token.LPAREN)
 
-	condition := p.parseExpression(LOWEST_PRECEDENCE)
+	condition := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 	ifExpress.Condition = condition
 
@@ -370,6 +435,10 @@ func (p *Parser) parseIfExpression() ast.Expression {
 }
 
 func (p *Parser) parseBlockExpression() *ast.BlockExpression {
+	if p.tracing {
+		defer un(trace(p, "BlockExpression"))
+	}
+
 	block := &ast.BlockExpression{Token: p.currentToken}
 
 	p.assertCurrentTokenType(token.LBRACE)
@@ -386,6 +455,10 @@ func (p *Parser) parseBlockExpression() *ast.BlockExpression {
 }
 
 func (p *Parser) parseFunction() ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "Function"))
+	}
+
 	function := &ast.FunctionExpression{Token: p.currentToken}
 
 	if p.peekTokenTypeIs(token.IDENT) {
@@ -406,6 +479,10 @@ func (p *Parser) parseFunction() ast.Expression {
 }
 
 func (p *Parser) parseArrayLiteral() ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "ArrayLiteral"))
+	}
+
 	array := &ast.ArrayLiteral{Token: p.currentToken}
 
 	p.assertCurrentTokenType(token.LBRACKET)
@@ -415,7 +492,7 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 	}
 
 	for p.currentToken.Type != token.RBRACKET && p.currentToken.Type != token.EOF {
-		array.Elements = append(array.Elements, p.parseExpression(LOWEST_PRECEDENCE))
+		array.Elements = append(array.Elements, p.parseExpression(token.LOWEST_PRECEDENCE))
 		p.nextToken()
 		if p.currentTokenTypeIs(token.COMMA) {
 			p.nextToken()
@@ -429,6 +506,10 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 }
 
 func (p *Parser) parseHashLiteral() ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "HashLiteral"))
+	}
+
 	hash := &ast.HashLiteral{Token: p.currentToken, Pair: make(map[ast.Expression]ast.Expression)}
 
 	p.assertCurrentTokenType(token.LBRACE)
@@ -438,10 +519,10 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	}
 
 	for p.currentToken.Type != token.RBRACE && p.currentToken.Type != token.EOF {
-		k := p.parseExpression(LOWEST_PRECEDENCE)
+		k := p.parseExpression(token.LOWEST_PRECEDENCE)
 		p.assertNextTokenType(token.COLON)
 		p.nextToken()
-		v := p.parseExpression(LOWEST_PRECEDENCE)
+		v := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 		hash.Pair[k] = v
 		p.nextToken()
@@ -458,6 +539,10 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 
 //TODO: merge with parseArrayLiteral()
 func (p *Parser) parseParameters() []*ast.Identifier {
+	if p.tracing {
+		defer un(trace(p, "Parameters"))
+	}
+
 	p.nextToken()
 	params := []*ast.Identifier{}
 
@@ -473,6 +558,10 @@ func (p *Parser) parseParameters() []*ast.Identifier {
 }
 
 func (p *Parser) parseCallExpression(fun ast.Expression) ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "CallExpression"))
+	}
+
 	call := &ast.CallExpression{Token: p.currentToken, Function: fun}
 
 	p.assertCurrentTokenType(token.LPAREN)
@@ -480,7 +569,7 @@ func (p *Parser) parseCallExpression(fun ast.Expression) ast.Expression {
 	args := []ast.Expression{}
 	for p.currentToken.Type != token.RPAREN {
 		if p.currentToken.Type != token.COMMA {
-			arg := p.parseExpression(LOWEST_PRECEDENCE)
+			arg := p.parseExpression(token.LOWEST_PRECEDENCE)
 
 			args = append(args, arg)
 		}
@@ -491,11 +580,15 @@ func (p *Parser) parseCallExpression(fun ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseIndexExpression(ex ast.Expression) ast.Expression {
+	if p.tracing {
+		defer un(trace(p, "IndexExpression"))
+	}
+
 	indexEx := &ast.InfixExpression{Token: p.currentToken, Left: ex, Operator: p.currentToken.Literal}
 
 	p.assertCurrentTokenType(token.LBRACKET)
 
-	index := p.parseExpression(LOWEST_PRECEDENCE)
+	index := p.parseExpression(token.LOWEST_PRECEDENCE)
 	indexEx.Right = index
 
 	p.assertNextTokenType(token.RBRACKET)
