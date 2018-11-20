@@ -54,43 +54,24 @@ func New(input string) *Parser {
 	p.registerPrefixParseFn(token.IF, p.parseIfExpression)
 	p.registerPrefixParseFn(token.FUNCTION, p.parseFunction)
 	p.registerPrefixParseFn(token.LBRACKET, p.parseArrayLiteral)
-	p.registerPrefixParseFn(token.LBRACE, p.parseHashLiteral)
 
-	p.registerPrefixParseFn(token.BANG, p.parsePrefix)
-	p.registerPrefixParseFn(token.MINUS, p.parsePrefix)
+	p.registerPrefixParseFn(token.LBRACE, p.parseHashLiteral)
 	p.registerPrefixParseFn(token.LPAREN, p.parseGroupedExpression)
 
-	p.registerInfixParseFn(token.MINUS, p.parseInfix)
-	p.registerInfixParseFn(token.MINUS_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.PLUS, p.parseInfix)
-	p.registerInfixParseFn(token.PLUS_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.DIVIDE, p.parseInfix)
-	p.registerInfixParseFn(token.DIVIDE_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.ASTERISK, p.parseInfix)
-	p.registerInfixParseFn(token.ASTERISK_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.REM, p.parseInfix)
-	p.registerInfixParseFn(token.REM_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.OR, p.parseInfix)
-	p.registerInfixParseFn(token.OR_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.AND, p.parseInfix)
-	p.registerInfixParseFn(token.AND_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.LAND, p.parseInfix)
-	p.registerInfixParseFn(token.LOR, p.parseInfix)
-	p.registerInfixParseFn(token.LSHIFT, p.parseInfix)
-	p.registerInfixParseFn(token.LSHIFT_ASSIGN, p.parseInfix)
-	p.registerInfixParseFn(token.RSHIFT, p.parseInfix)
-	p.registerInfixParseFn(token.RSHIFT_ASSIGN, p.parseInfix)
-
-	p.registerInfixParseFn(token.EQ, p.parseInfix)
-	p.registerInfixParseFn(token.NOTEQ, p.parseInfix)
-	p.registerInfixParseFn(token.LT, p.parseInfix)
-	p.registerInfixParseFn(token.LTE, p.parseInfix)
-	p.registerInfixParseFn(token.GT, p.parseInfix)
-	p.registerInfixParseFn(token.GTE, p.parseInfix)
-	p.registerInfixParseFn(token.PLUSPLUS, p.parsePostfix)
-	p.registerInfixParseFn(token.MINUSMINUS, p.parsePostfix)
 	p.registerInfixParseFn(token.LPAREN, p.parseCallExpression)
 	p.registerInfixParseFn(token.LBRACKET, p.parseIndexExpression)
+
+	for _, tk := range token.GetPrefixOperators() {
+		p.registerPrefixParseFn(tk, p.parsePrefix)
+	}
+
+	for _, tk := range token.GetInfixOperators() {
+		p.registerInfixParseFn(tk, p.parseInfix)
+	}
+
+	for _, tk := range token.GetPostfixOperators() {
+		p.registerInfixParseFn(tk, p.parsePostfix)
+	}
 
 	return &p
 }

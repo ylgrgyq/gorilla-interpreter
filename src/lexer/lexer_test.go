@@ -197,13 +197,13 @@ func TestOperatorToken(t *testing.T) {
 			++plus;
 		*/
 		{token.IDENT, "plusplus", 13, 2},
-		{token.PLUSPLUS, "++", 13, 10},
+		{token.INCREASE, "++", 13, 10},
 		{token.SEMICOLON, ";", 13, 12},
 		{token.IDENT, "minusminus", 14, 2},
-		{token.MINUSMINUS, "--", 14, 12},
-		{token.MINUSMINUS, "--", 15, 2},
+		{token.DECREASE, "--", 14, 12},
+		{token.DECREASE, "--", 15, 2},
 		{token.IDENT, "minus", 15, 4},
-		{token.PLUSPLUS, "++", 16, 2},
+		{token.INCREASE, "++", 16, 2},
 		{token.IDENT, "plus", 16, 4},
 		{token.SEMICOLON, ";", 16, 8},
 

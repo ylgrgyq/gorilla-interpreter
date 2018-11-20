@@ -1,6 +1,6 @@
 package token
 
-type TokenType string
+type TokenType int
 
 type Token struct {
 	Type    TokenType
@@ -9,86 +9,156 @@ type Token struct {
 }
 
 const (
-	ILLEGAL = "ILLEGAL"
-	EOF     = "EOF"
+	ILLEGAL TokenType = iota
+	EOF
 
-	// Identifiers
-	IDENT  = "IDENT"
-	INT    = "INT"
-	STRING = "STRING"
-	TRUE   = "TRUE"
-	FALSE  = "FALSE"
+	literal_start
+	IDENT
+	INT
+	STRING
+	literal_end
 
-	// Operators
-	ASSIGN          = "="
-	PLUS            = "+"
-	PLUS_ASSIGN     = "+="
-	PLUSPLUS        = "++"
-	MINUS           = "-"
-	MINUS_ASSIGN    = "-="
-	MINUSMINUS      = "--"
-	ASTERISK        = "*"
-	ASTERISK_ASSIGN = "*="
-	DIVIDE          = "/"
-	DIVIDE_ASSIGN   = "/="
-	REM             = "%"
-	REM_ASSIGN      = "%="
-	BANG            = "!"
+	infix_operators_start
+	ASSIGN
+	PLUS
+	MINUS
+	ASTERISK
+	DIVIDE
+	REM
 
-	OR     = "|"
-	AND    = "&"
-	XOR    = "^"
-	LSHIFT = "<<"
-	RSHIFT = ">>"
+	OR
+	AND
+	XOR
+	LSHIFT
+	RSHIFT
 
-	OR_ASSIGN     = "|="
-	AND_ASSIGN    = "&="
-	XOR_ASSIGN    = "^="
-	LSHIFT_ASSIGN = "<<="
-	RSHIFT_ASSIGN = ">>="
+	LOR
+	LAND
 
-	LOR  = "||"
-	LAND = "&&"
+	LT
+	LTE
+	GT
+	GTE
 
-	LT  = "<"
-	LTE = "<="
-	GT  = ">"
-	GTE = ">="
+	EQ
+	NOTEQ
 
-	EQ    = "=="
-	NOTEQ = "!="
+	PLUS_ASSIGN
+	MINUS_ASSIGN
+	ASTERISK_ASSIGN
+	DIVIDE_ASSIGN
+	REM_ASSIGN
 
-	LBRACKET = "["
-	RBRACKET = "]"
+	OR_ASSIGN
+	AND_ASSIGN
+	XOR_ASSIGN
+	LSHIFT_ASSIGN
+	RSHIFT_ASSIGN
+	infix_operators_end
+
+	BANG
+	INCREASE
+	DECREASE
+
+	LBRACKET
+	RBRACKET
 
 	// Delimiters
-	COMMA     = ","
-	SEMICOLON = ";"
-	COLON     = ":"
+	COMMA
+	SEMICOLON
+	COLON
 
-	LPAREN = "("
-	RPAREN = ")"
-	LBRACE = "{"
-	RBRACE = "}"
+	LPAREN
+	RPAREN
+	LBRACE
+	RBRACE
 
-	// Keywords
-	FUNCTION = "FUNCTION"
-	LET      = "LET"
-	IF       = "IF"
-	ELSE     = "ELSE"
-	RETURN   = "RETURN"
-	NULL     = "NULL"
+	keywords_start
+	FUNCTION
+	LET
+	IF
+	ELSE
+	RETURN
+	NULL
+	TRUE
+	FALSE
+	keywords_end
 )
 
-var keywords = map[string]TokenType{
-	"fn":     FUNCTION,
-	"let":    LET,
-	"return": RETURN,
-	"if":     IF,
-	"else":   ELSE,
-	"true":   TRUE,
-	"false":  FALSE,
-	"null":   NULL,
+var tokenLiteral = [...]string{
+	ILLEGAL: "ILLEGAL",
+	EOF:     "EOF",
+
+	IDENT:  "IDENT",
+	INT:    "INT",
+	STRING: "STRING",
+
+	ASSIGN:   "=",
+	PLUS:     "+",
+	MINUS:    "-",
+	ASTERISK: "*",
+	DIVIDE:   "/",
+	REM:      "%",
+
+	OR:     "|",
+	AND:    "&",
+	XOR:    "^",
+	LSHIFT: "<<",
+	RSHIFT: ">>",
+
+	LOR:  "LOR",
+	LAND: "LAND",
+
+	LT:  "<",
+	LTE: "<=",
+	GT:  ">",
+	GTE: ">=",
+
+	EQ:    "==",
+	NOTEQ: "!=",
+
+	PLUS_ASSIGN:     "+=",
+	MINUS_ASSIGN:    "-=",
+	ASTERISK_ASSIGN: "*=",
+	DIVIDE_ASSIGN:   "/=",
+	REM_ASSIGN:      "%=",
+
+	OR_ASSIGN:     "|=",
+	AND_ASSIGN:    "&=",
+	XOR_ASSIGN:    "^=",
+	LSHIFT_ASSIGN: "<<=",
+	RSHIFT_ASSIGN: ">>=",
+
+	BANG:     "!",
+	INCREASE: "++",
+	DECREASE: "--",
+
+	LBRACKET: "[",
+	RBRACKET: "]",
+
+	COMMA:     ",",
+	SEMICOLON: ";",
+	COLON:     ":",
+
+	LPAREN: "(",
+	RPAREN: ")",
+	LBRACE: "{",
+	RBRACE: "}",
+
+	FUNCTION: "fn",
+	LET:      "let",
+	IF:       "if",
+	ELSE:     "else",
+	RETURN:   "return",
+	NULL:     "null",
+	TRUE:     "true",
+	FALSE:    "false",
+}
+
+var keywords map[string]TokenType
+
+func getLiteral(tp TokenType) string {
+	return tokenLiteral[tp]
 }
 
 func LookupIdent(ident string) TokenType {
@@ -114,10 +184,32 @@ func (op Token) Precedence() int {
 		return 5
 	case ASTERISK, DIVIDE, REM, LSHIFT, RSHIFT, AND:
 		return 6
-	case LPAREN, PLUSPLUS, MINUSMINUS:
+	case LPAREN, INCREASE, DECREASE:
 		return 7
 	case LBRACKET:
 		return 8
 	}
 	return 0
+}
+
+func GetPrefixOperators() (ops []TokenType) {
+	return []TokenType{MINUS, BANG}
+}
+
+func GetInfixOperators() (ops []TokenType) {
+	for i := infix_operators_start; i < infix_operators_end; i++ {
+		ops = append(ops, i)
+	}
+	return ops
+}
+
+func GetPostfixOperators() (ops []TokenType) {
+	return []TokenType{INCREASE, DECREASE}
+}
+
+func init() {
+	keywords = make(map[string]TokenType)
+	for i := keywords_start; i < keywords_end; i++ {
+		keywords[tokenLiteral[i]] = i
+	}
 }

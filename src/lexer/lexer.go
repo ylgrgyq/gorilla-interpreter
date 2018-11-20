@@ -110,9 +110,9 @@ func (l *Lexer) NextToken() (tok token.Token) {
 		case '*':
 			tok = l.switch2('*', token.ASTERISK, token.ASTERISK_ASSIGN)
 		case '-':
-			tok = l.switch3('-', token.MINUS, token.MINUS_ASSIGN, '-', token.MINUSMINUS)
+			tok = l.switch3('-', token.MINUS, token.MINUS_ASSIGN, '-', token.DECREASE)
 		case '+':
-			tok = l.switch3('+', token.PLUS, token.PLUS_ASSIGN, '+', token.PLUSPLUS)
+			tok = l.switch3('+', token.PLUS, token.PLUS_ASSIGN, '+', token.INCREASE)
 		case '/':
 			tok = l.switch2('/', token.DIVIDE, token.DIVIDE_ASSIGN)
 		case '%':
