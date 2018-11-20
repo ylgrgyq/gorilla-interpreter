@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"fmt"
-	"lexer"
 	"object"
 	"parser"
 	"testing"
@@ -180,8 +179,7 @@ func TestEvalError(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		lexer := lexer.New(test.input)
-		parser := parser.New(lexer)
+		parser := parser.New(test.input)
 
 		program, err := parser.ParseProgram()
 		if err != nil {
@@ -253,8 +251,7 @@ func testCompareNull(t *testing.T, obj object.Object) error {
 }
 
 func evalTestingInput(t *testing.T, input string) object.Object {
-	lexer := lexer.New(input)
-	parser := parser.New(lexer)
+	parser := parser.New(input)
 
 	program, err := parser.ParseProgram()
 	if err != nil {

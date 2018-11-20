@@ -16,10 +16,6 @@ type Evaluable interface {
 	Eval() object.Object
 }
 
-func (p *ast.Program) Eval() object.Object {
-
-}
-
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 	case *ast.Program:
