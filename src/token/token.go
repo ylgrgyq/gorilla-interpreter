@@ -157,7 +157,7 @@ var tokenLiteral = [...]string{
 
 var keywords map[string]TokenType
 
-func getLiteral(tp TokenType) string {
+func GetLiteral(tp TokenType) string {
 	return tokenLiteral[tp]
 }
 
@@ -176,22 +176,27 @@ const (
 // Precedence get precedence of the operator tokens
 func (op Token) Precedence() int {
 	switch op.Type {
-	case LOR:
+	case
+		ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN, ASTERISK_ASSIGN,
+		DIVIDE_ASSIGN, REM_ASSIGN, OR_ASSIGN, AND_ASSIGN,
+		XOR_ASSIGN, LSHIFT_ASSIGN, RSHIFT_ASSIGN:
 		return 1
-	case LAND:
+	case LOR:
 		return 2
-	case EQ, NOTEQ:
+	case LAND:
 		return 3
-	case LT, LTE, GT, GTE:
+	case EQ, NOTEQ:
 		return 4
-	case PLUS, MINUS, OR, XOR:
+	case LT, LTE, GT, GTE:
 		return 5
-	case ASTERISK, DIVIDE, REM, LSHIFT, RSHIFT, AND:
+	case PLUS, MINUS, OR, XOR:
 		return 6
-	case LPAREN, INCREASE, DECREASE:
+	case ASTERISK, DIVIDE, REM, LSHIFT, RSHIFT, AND:
 		return 7
-	case LBRACKET:
+	case LPAREN, INCREASE, DECREASE:
 		return 8
+	case LBRACKET:
+		return 9
 	}
 	return LOWEST_PRECEDENCE
 }

@@ -26,6 +26,10 @@ type Program struct {
 	Statements []Statement
 }
 
+func (p *Program) TokenLieteral() string {
+	return ""
+}
+
 func (p *Program) String() string {
 	var buffer bytes.Buffer
 	for _, statement := range p.Statements {
@@ -100,27 +104,6 @@ func (es *ExpressionStatement) TokenLieteral() string {
 func (ex *ExpressionStatement) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(ex.Value.String())
-	buffer.WriteString(";")
-	return buffer.String()
-}
-
-type AssignStatement struct {
-	Token    token.Token
-	Variable *Identifier
-	Value    Expression
-}
-
-func (a *AssignStatement) statementNode() {}
-
-func (a *AssignStatement) TokenLieteral() string {
-	return a.Token.Literal
-}
-
-func (a *AssignStatement) String() string {
-	var buffer bytes.Buffer
-	buffer.WriteString(a.Variable.String())
-	buffer.WriteString(" = ")
-	buffer.WriteString(a.Value.String())
 	buffer.WriteString(";")
 	return buffer.String()
 }

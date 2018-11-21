@@ -26,8 +26,6 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return Eval(node.Value, env)
 	case *ast.LetStatement:
 		return evalLetStatement(node, env)
-	case *ast.AssignStatement:
-		return evalAssignStatement(node, env)
 	case *ast.ReturnStatement:
 		return evalReturnStatement(node, env)
 	case *ast.PrefixExpression:
@@ -266,7 +264,6 @@ func evalInfixExpression(node *ast.InfixExpression, env *object.Environment) obj
 
 	switch {
 	case node.Operator == "[":
-		print("asdfasdf", node.TokenLieteral(), left.Inspect(), right.Inspect())
 		return evalIndexExpression(left, right)
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(node.Operator, left, right)

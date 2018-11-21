@@ -322,7 +322,7 @@ func TestFunctionExpression(t *testing.T) {
 		t.Errorf("statement not *ast.ExpressionStatement. got '%T'", program.Statements[0])
 	}
 
-	expectStr := "(fn hello (x, y) {x = 1; return (x + y); })"
+	expectStr := "(fn hello (x, y) {(x = 1); return (x + y); })"
 	funExpress, ok := express.Value.(*ast.FunctionExpression)
 	if funExpress.String() != expectStr {
 		t.Errorf("expect function expression String() %q. got %q", expectStr, funExpress.String())
