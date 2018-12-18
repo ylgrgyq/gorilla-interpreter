@@ -39,6 +39,7 @@ func Make(op OpCode, operands ...int) []byte {
 		return []byte{}
 	}
 
+	// at least one byte to store OpCode for instructions
 	length := 1
 	for _, width := range def.OperandWiths {
 		length += width
@@ -58,4 +59,8 @@ func Make(op OpCode, operands ...int) []byte {
 	}
 
 	return instructions
+}
+
+func ReadUint16(bs Instructions) uint16 {
+	return binary.BigEndian.Uint16(bs)
 }
