@@ -63,8 +63,18 @@ func (v *VM) Run() error {
 			index := code.ReadUint16(v.instructions[ip+1:])
 			ip += 2
 
-			fmt.Printf("constant index %d", index)
 			err := v.pushStack(v.constants[index])
+			if err != nil {
+				return err
+			}
+		case code.OpAdd:
+			left := v.popStack()
+			right := v.popStack()
+
+			l := left.(*object.Integer).Value
+			r := right.(*object.Integer).Value
+
+			err := v.pushStack(&object.Integer{Value: l + r})
 			if err != nil {
 				return err
 			}

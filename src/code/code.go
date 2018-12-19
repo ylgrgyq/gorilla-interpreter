@@ -1,6 +1,7 @@
 package code
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -10,6 +11,7 @@ type OpCode byte
 
 const (
 	OpConstant OpCode = iota
+	OpAdd
 )
 
 type Definition struct {
@@ -19,6 +21,7 @@ type Definition struct {
 
 var definitionMap = map[OpCode]*Definition{
 	OpConstant: &Definition{"OpConstant", []int{2}},
+	OpAdd:      &Definition{"OpAdd", []int{}},
 }
 
 func Lookup(code OpCode) (*Definition, error) {
@@ -63,4 +66,67 @@ func Make(op OpCode, operands ...int) []byte {
 
 func ReadUint16(bs Instructions) uint16 {
 	return binary.BigEndian.Uint16(bs)
+}
+
+func ReadOperand(def *Definition, ins Instructions) ([]int, int) {
+	ret := make([]int, len(def.OperandWiths))
+
+	offset := 0
+	for i, width := range def.OperandWiths {
+		switch width {
+		case 2:
+			ret[i] = int(ReadUint16(ins[offset:]))
+		}
+
+		offset += width
+	}
+
+	return ret, offset
+}
+
+func fmtInstruction(def *Definition, operands ...int) string {
+	operandCount := len(def.OperandWiths)
+
+	switch operandCount {
+	case 0:
+		return def.Name
+	case 1:
+		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	}
+
+	return fmt.Sprintf("unhandled operand count for code %s", def.Name)
+}
+
+func InstructionsString(ins Instructions) string {
+	var out bytes.Buffer
+
+	cursor := 0
+	for cursor < len(ins) {
+		code := OpCode(ins[cursor])
+		def, err := Lookup(code)
+		if err != nil {
+			fmt.Fprintf(&out, "Error: %s\n", err)
+			break
+		}
+
+		operands, read := ReadOperand(def, ins[cursor+1:])
+		if len(operands) != len(def.OperandWiths) {
+			fmt.Fprintf(&out, "Error: no enough operands for code:%s. want:%d, got:%d", def.Name, len(def.OperandWiths), len(operands))
+			break
+		}
+
+		fmt.Fprintf(&out, "%04d %s\n", cursor, fmtInstruction(def, operands...))
+		cursor += read + 1
+	}
+
+	return out.String()
+}
+
+func FlattenInstructions(ins []Instructions) Instructions {
+	out := Instructions{}
+	for _, i := range ins {
+		out = append(out, i...)
+	}
+
+	return out
 }
