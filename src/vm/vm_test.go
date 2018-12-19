@@ -82,6 +82,7 @@ func TestIntegerArithmetic(t *testing.T) {
 		{"2", 2},
 		{"1 + 2", 3},
 		{"4 + 4", 8},
+		{"4 - 4 * 15 / 2", -26},
 	}
 	runTests(t, tests)
 }

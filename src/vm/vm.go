@@ -61,6 +61,29 @@ func (v *VM) StackLastTop() object.Object {
 	return v.lastPop
 }
 
+func (v *VM) executeBinaryOperator(op code.OpCode) error {
+	right := v.popStack()
+	left := v.popStack()
+
+	l := left.(*object.Integer).Value
+	r := right.(*object.Integer).Value
+
+	var result int64
+	switch op {
+	case code.OpAdd:
+		result = l + r
+	case code.OpMinus:
+		result = l - r
+	case code.OpMultiply:
+		result = l * r
+	case code.OpDivide:
+		result = l / r
+	}
+
+	err := v.pushStack(&object.Integer{Value: result})
+	return err
+}
+
 func (v *VM) Run() error {
 	for ip := 0; ip < len(v.instructions); ip++ {
 		c := code.OpCode(v.instructions[ip])
@@ -74,17 +97,12 @@ func (v *VM) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OpAdd:
-			left := v.popStack()
-			right := v.popStack()
-
-			l := left.(*object.Integer).Value
-			r := right.(*object.Integer).Value
-
-			err := v.pushStack(&object.Integer{Value: l + r})
+		case code.OpAdd, code.OpMinus, code.OpMultiply, code.OpDivide:
+			err := v.executeBinaryOperator(c)
 			if err != nil {
 				return err
 			}
+
 		case code.OpPop:
 			v.popStack()
 		}

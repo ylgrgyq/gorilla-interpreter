@@ -28,6 +28,22 @@ func (c *Compiler) emit(op code.OpCode, operands ...int) int {
 	return startPos
 }
 
+func (c *Compiler) compileInfixOperators(op string) error {
+	switch op {
+	case "+":
+		c.emit(code.OpAdd)
+	case "-":
+		c.emit(code.OpMinus)
+	case "*":
+		c.emit(code.OpMultiply)
+	case "/":
+		c.emit(code.OpDivide)
+	default:
+		return fmt.Errorf("unknown operator %s", op)
+	}
+	return nil
+}
+
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
@@ -55,11 +71,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
-		switch node.Operator {
-		case "+":
-			c.emit(code.OpAdd)
-		default:
-			return fmt.Errorf("unknown operator %s", node.Operator)
+		err = c.compileInfixOperators(node.Operator)
+		if err != nil {
+			return err
 		}
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}

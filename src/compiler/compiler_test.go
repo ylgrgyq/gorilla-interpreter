@@ -68,7 +68,10 @@ func testConstants(expectConstants []object.Object, actualConstans []object.Obje
 
 		switch expect := expect.(type) {
 		case *object.Integer:
-			return testInteger(expect.Value, actual)
+			err := testInteger(expect.Value, actual)
+			if err != nil {
+				return err
+			}
 		}
 		index++
 	}
@@ -120,7 +123,54 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpPop)},
 			[]object.Object{
 				&object.Integer{Value: 1},
-				&object.Integer{Value: 23}}},
+				&object.Integer{Value: 2}}},
+		{"(1 - 2 - 3) / 100",
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpMinus),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpMinus),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpDivide),
+				code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 100}}},
+		{"(1 - 2 * 3) / 100",
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpMultiply),
+				code.Make(code.OpMinus),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpDivide),
+				code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 100},
+			}},
+		{"4 - 4 * 15 / 2",
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpMultiply),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpDivide),
+				code.Make(code.OpMinus),
+				code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 4},
+				&object.Integer{Value: 4},
+				&object.Integer{Value: 15},
+				&object.Integer{Value: 2},
+			}},
 	}
 
 	runTests(t, tests)
