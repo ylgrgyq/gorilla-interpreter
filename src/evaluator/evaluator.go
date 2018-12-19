@@ -147,16 +147,6 @@ func evalLetStatement(node *ast.LetStatement, env *object.Environment) object.Ob
 	return val
 }
 
-func evalAssignStatement(node *ast.AssignStatement, env *object.Environment) object.Object {
-	val := Eval(node.Value, env)
-	if IsError(val) {
-		return val
-	}
-
-	env.Set(node.Variable.Value, val)
-	return val
-}
-
 func evalFunctionExpression(node *ast.FunctionExpression, env *object.Environment) object.Object {
 	return &object.Function{Body: node.Body, Parameters: node.Parameters, Env: env}
 }
