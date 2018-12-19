@@ -70,7 +70,10 @@ func runTests(t *testing.T, tests []vmTestCase) {
 			t.Fatalf("run program for input: %q failed. error is: %q", test.input, err)
 		}
 
-		testExpectedObject(t, test.expect, v.StackTop())
+		testExpectedObject(t, test.expect, v.StackLastTop())
+		if v.StackTop() != nil {
+			t.Fatalf("left %s in stack.", v.StackTop().Inspect())
+		}
 	}
 }
 

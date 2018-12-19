@@ -109,12 +109,15 @@ func runTests(t *testing.T, tests []compileTestCase) {
 }
 func TestCompileIntegerArithmetic(t *testing.T) {
 	tests := []compileTestCase{
-		{"3", []code.Instructions{code.Make(code.OpConstant, 0)}, []object.Object{&object.Integer{Value: 3}}},
+		{"3", []code.Instructions{code.Make(code.OpConstant, 0),
+			code.Make(code.OpPop)},
+			[]object.Object{&object.Integer{Value: 3}}},
 		{"1 + 2",
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpConstant, 1),
-				code.Make(code.OpAdd)},
+				code.Make(code.OpAdd),
+				code.Make(code.OpPop)},
 			[]object.Object{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 23}}},

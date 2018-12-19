@@ -73,7 +73,7 @@ func StartWithCompiler(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		top := vm.StackTop()
+		top := vm.StackLastTop()
 		io.WriteString(out, top.Inspect())
 		io.WriteString(out, "\n")
 	}

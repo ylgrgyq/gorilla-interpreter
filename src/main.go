@@ -18,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("Hello %s! This is the Monkey programming language!\n", user.Username)
+	fmt.Printf("Hello %s! This is the Gorilla programming language running in %q mode!\n", user.Username, *modePtr)
 
 	fmt.Printf("Feel free to type in commands\n")
 

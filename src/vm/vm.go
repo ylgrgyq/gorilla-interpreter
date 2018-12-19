@@ -15,6 +15,8 @@ type VM struct {
 
 	stack []object.Object
 	sp    int
+
+	lastPop object.Object
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
@@ -42,6 +44,7 @@ func (v *VM) popStack() object.Object {
 	}
 
 	o := v.stack[v.sp]
+	v.lastPop = o
 	v.sp--
 	return o
 }
@@ -52,6 +55,10 @@ func (v *VM) StackTop() object.Object {
 	}
 
 	return v.stack[v.sp]
+}
+
+func (v *VM) StackLastTop() object.Object {
+	return v.lastPop
 }
 
 func (v *VM) Run() error {
@@ -78,6 +85,8 @@ func (v *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpPop:
+			v.popStack()
 		}
 	}
 

@@ -12,6 +12,7 @@ type OpCode byte
 const (
 	OpConstant OpCode = iota
 	OpAdd
+	OpPop
 )
 
 type Definition struct {
@@ -22,6 +23,7 @@ type Definition struct {
 var definitionMap = map[OpCode]*Definition{
 	OpConstant: &Definition{"OpConstant", []int{2}},
 	OpAdd:      &Definition{"OpAdd", []int{}},
+	OpPop:      &Definition{"OpPop", []int{}},
 }
 
 func Lookup(code OpCode) (*Definition, error) {
