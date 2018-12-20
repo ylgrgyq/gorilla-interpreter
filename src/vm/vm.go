@@ -7,6 +7,12 @@ import (
 	"object"
 )
 
+var (
+	TRUE  = &object.Boolean{Value: true}
+	FALSE = &object.Boolean{Value: false}
+	NULL  = &object.Null{}
+)
+
 const StackSize = 2048
 
 type VM struct {
@@ -61,26 +67,71 @@ func (v *VM) StackLastTop() object.Object {
 	return v.lastPop
 }
 
+func (v *VM) executeBinaryOperatorOnInteger(op code.OpCode, l int64, r int64) (object.Object, error) {
+	var result object.Object
+	switch op {
+	case code.OpAdd:
+		result = &object.Integer{Value: l + r}
+	case code.OpMinus:
+		result = &object.Integer{Value: l - r}
+	case code.OpMultiply:
+		result = &object.Integer{Value: l * r}
+	case code.OpDivide:
+		result = &object.Integer{Value: l / r}
+	case code.OpEqual:
+		result = &object.Boolean{Value: l == r}
+	case code.OpNotEqual:
+		result = &object.Boolean{Value: l != r}
+	case code.OpGreaterEqual:
+		result = &object.Boolean{Value: l >= r}
+	case code.OpGreaterThan:
+		result = &object.Boolean{Value: l > r}
+	default:
+		return nil, fmt.Errorf("unsupportted operator on integer: %d", op)
+	}
+
+	return result, nil
+}
+
+func (v *VM) executeBinaryOperatorOnBoolean(op code.OpCode, l bool, r bool) (object.Object, error) {
+	var result object.Object
+	switch op {
+	case code.OpEqual:
+		result = &object.Boolean{Value: l == r}
+	case code.OpNotEqual:
+		result = &object.Boolean{Value: l != r}
+	default:
+		return nil, fmt.Errorf("unsupportted operator on boolean: %d", op)
+	}
+
+	return result, nil
+}
+
 func (v *VM) executeBinaryOperator(op code.OpCode) error {
 	right := v.popStack()
 	left := v.popStack()
 
-	l := left.(*object.Integer).Value
-	r := right.(*object.Integer).Value
-
-	var result int64
-	switch op {
-	case code.OpAdd:
-		result = l + r
-	case code.OpMinus:
-		result = l - r
-	case code.OpMultiply:
-		result = l * r
-	case code.OpDivide:
-		result = l / r
+	var result object.Object
+	var err error
+	if left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ {
+		l := left.(*object.Integer).Value
+		r := right.(*object.Integer).Value
+		result, err = v.executeBinaryOperatorOnInteger(op, l, r)
+		if err != nil {
+			return err
+		}
+	} else if left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ {
+		l := left.(*object.Boolean).Value
+		r := right.(*object.Boolean).Value
+		result, err = v.executeBinaryOperatorOnBoolean(op, l, r)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("unsupportted binary operator %d with %T and %T as operands", op, left, right)
 	}
 
-	err := v.pushStack(&object.Integer{Value: result})
+	err = v.pushStack(result)
 	return err
 }
 
@@ -97,12 +148,22 @@ func (v *VM) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OpAdd, code.OpMinus, code.OpMultiply, code.OpDivide:
+		case code.OpAdd, code.OpMinus, code.OpMultiply, code.OpDivide,
+			code.OpEqual, code.OpNotEqual, code.OpGreaterEqual, code.OpGreaterThan:
 			err := v.executeBinaryOperator(c)
 			if err != nil {
 				return err
 			}
-
+		case code.OpTrue:
+			err := v.pushStack(TRUE)
+			if err != nil {
+				return err
+			}
+		case code.OpFalse:
+			err := v.pushStack(FALSE)
+			if err != nil {
+				return err
+			}
 		case code.OpPop:
 			v.popStack()
 		}

@@ -36,22 +36,41 @@ func testIntegerObject(expected int64, actual object.Object) error {
 	return nil
 }
 
-func testExpectedObject(t *testing.T, expcet interface{}, actual object.Object) {
+func testBooleanObject(expected bool, actual object.Object) error {
+	r, ok := actual.(*object.Boolean)
+	if !ok {
+		return fmt.Errorf("object is not object.Boolean. got=%T (%+v)", actual, actual)
+	}
+
+	if expected != r.Value {
+		return fmt.Errorf("assert failed. want=%t, got=%t", expected, r.Value)
+	}
+
+	return nil
+}
+
+func testExpectedObject(t *testing.T, input string, expcet interface{}, actual object.Object) {
 	t.Helper()
 
 	switch expected := expcet.(type) {
 	case int:
 		err := testIntegerObject(int64(expected), actual)
 		if err != nil {
-			t.Errorf("test integer object failed: %s", err)
+			t.Errorf("test integer object failed for input: %s. %s", input, err)
+		}
+	case bool:
+		err := testBooleanObject(expected, actual)
+		if err != nil {
+			t.Errorf("test boolean object failed for input: %s. %s", input, err)
 		}
 	default:
-		t.Errorf("unknown type %T", expcet)
+		t.Errorf("unknown type %T for input %s", expcet, input)
 	}
 }
 
 func runTests(t *testing.T, tests []vmTestCase) {
 	t.Helper()
+
 	for _, test := range tests {
 		program, err := parse(test.input)
 		if err != nil {
@@ -70,7 +89,7 @@ func runTests(t *testing.T, tests []vmTestCase) {
 			t.Fatalf("run program for input: %q failed. error is: %q", test.input, err)
 		}
 
-		testExpectedObject(t, test.expect, v.StackLastTop())
+		testExpectedObject(t, test.input, test.expect, v.StackLastTop())
 		if v.StackTop() != nil {
 			t.Fatalf("left %s in stack.", v.StackTop().Inspect())
 		}
@@ -83,6 +102,21 @@ func TestIntegerArithmetic(t *testing.T) {
 		{"1 + 2", 3},
 		{"4 + 4", 8},
 		{"4 - 4 * 15 / 2", -26},
+	}
+	runTests(t, tests)
+}
+
+func TestComparation(t *testing.T) {
+	tests := []vmTestCase{
+		{"true", true},
+		{"false", false},
+		{"true == true", true},
+		{"true != false", true},
+		{"1 + 2 < 5", true},
+		{"1 + 2 < 1", false},
+		{"1 + 2 <= 2 + 1", true},
+		{"1 + 2 >= 2 + 1", true},
+		{"1 + 4 >= 8 + 1", false},
 	}
 	runTests(t, tests)
 }

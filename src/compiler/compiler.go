@@ -28,8 +28,32 @@ func (c *Compiler) emit(op code.OpCode, operands ...int) int {
 	return startPos
 }
 
-func (c *Compiler) compileInfixOperators(op string) error {
-	switch op {
+func (c *Compiler) compileInfixExpression(node *ast.InfixExpression) error {
+	op := node.Operator
+	var err error
+	if op == "<" || op == "<=" {
+		err = c.Compile(node.Right)
+		if err != nil {
+			return err
+		}
+
+		err := c.Compile(node.Left)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := c.Compile(node.Left)
+		if err != nil {
+			return err
+		}
+
+		err = c.Compile(node.Right)
+		if err != nil {
+			return err
+		}
+	}
+
+	switch node.Operator {
 	case "+":
 		c.emit(code.OpAdd)
 	case "-":
@@ -38,6 +62,15 @@ func (c *Compiler) compileInfixOperators(op string) error {
 		c.emit(code.OpMultiply)
 	case "/":
 		c.emit(code.OpDivide)
+	case "==":
+		c.emit(code.OpEqual)
+	case "!=":
+		c.emit(code.OpNotEqual)
+	case ">", "<":
+		c.emit(code.OpGreaterThan)
+	case ">=", "<=":
+		c.emit(code.OpGreaterEqual)
+
 	default:
 		return fmt.Errorf("unknown operator %s", op)
 	}
@@ -61,23 +94,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpPop)
 
 	case *ast.InfixExpression:
-		err := c.Compile(node.Left)
-		if err != nil {
-			return err
-		}
-
-		err = c.Compile(node.Right)
-		if err != nil {
-			return err
-		}
-
-		err = c.compileInfixOperators(node.Operator)
+		err := c.compileInfixExpression(node)
 		if err != nil {
 			return err
 		}
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))
+	case *ast.Boolean:
+		if node.Value {
+			c.emit(code.OpTrue)
+		} else {
+			c.emit(code.OpFalse)
+		}
 	default:
 		return fmt.Errorf("unknown node type %T", node)
 	}

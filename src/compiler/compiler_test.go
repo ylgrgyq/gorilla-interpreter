@@ -55,6 +55,20 @@ func testInteger(expect int64, actual object.Object) error {
 	return nil
 }
 
+func testBoolean(expect bool, actual object.Object) error {
+	r, ok := actual.(*object.Boolean)
+
+	if !ok {
+		return fmt.Errorf("compiled value not boolean. got:%T (%+v)", actual, actual)
+	}
+
+	if expect != r.Value {
+		return fmt.Errorf("compare boolean failed. want:%t, got:%t", expect, r.Value)
+	}
+
+	return nil
+}
+
 func testConstants(expectConstants []object.Object, actualConstans []object.Object) error {
 	if len(expectConstants) != len(actualConstans) {
 		return fmt.Errorf("compare constants length failed. want:%d got:%d",
@@ -69,6 +83,11 @@ func testConstants(expectConstants []object.Object, actualConstans []object.Obje
 		switch expect := expect.(type) {
 		case *object.Integer:
 			err := testInteger(expect.Value, actual)
+			if err != nil {
+				return err
+			}
+		case *object.Boolean:
+			err := testBoolean(expect.Value, actual)
 			if err != nil {
 				return err
 			}
@@ -170,6 +189,77 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				&object.Integer{Value: 4},
 				&object.Integer{Value: 15},
 				&object.Integer{Value: 2},
+			}},
+	}
+
+	runTests(t, tests)
+}
+
+func TestCompileBoolean(t *testing.T) {
+	tests := []compileTestCase{
+		{"true", []code.Instructions{code.Make(code.OpTrue),
+			code.Make(code.OpPop)},
+			[]object.Object{}},
+		{"false", []code.Instructions{code.Make(code.OpFalse),
+			code.Make(code.OpPop)},
+			[]object.Object{}},
+		{"((15 + 221) == 236) == (false != (68 < 103))", []code.Instructions{
+			code.Make(code.OpConstant, 0),
+			code.Make(code.OpConstant, 1),
+			code.Make(code.OpAdd),
+			code.Make(code.OpConstant, 2),
+			code.Make(code.OpEqual),
+
+			code.Make(code.OpFalse),
+			code.Make(code.OpConstant, 3),
+			code.Make(code.OpConstant, 4),
+			code.Make(code.OpGreaterThan),
+			code.Make(code.OpNotEqual),
+			code.Make(code.OpEqual),
+			code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 15},
+				&object.Integer{Value: 221},
+				&object.Integer{Value: 236},
+				&object.Integer{Value: 103},
+				&object.Integer{Value: 68},
+			}},
+
+		{"(68 - 25) <= 236", []code.Instructions{
+			code.Make(code.OpConstant, 0),
+			code.Make(code.OpConstant, 1),
+			code.Make(code.OpConstant, 2),
+			code.Make(code.OpMinus),
+			code.Make(code.OpGreaterEqual),
+			code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 236},
+				&object.Integer{Value: 68},
+				&object.Integer{Value: 25},
+			}},
+		{"(68 - 25) > 21", []code.Instructions{
+			code.Make(code.OpConstant, 0),
+			code.Make(code.OpConstant, 1),
+			code.Make(code.OpMinus),
+			code.Make(code.OpConstant, 2),
+			code.Make(code.OpGreaterThan),
+			code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 68},
+				&object.Integer{Value: 25},
+				&object.Integer{Value: 21},
+			}},
+		{"(68 - 25) >= 21", []code.Instructions{
+			code.Make(code.OpConstant, 0),
+			code.Make(code.OpConstant, 1),
+			code.Make(code.OpMinus),
+			code.Make(code.OpConstant, 2),
+			code.Make(code.OpGreaterEqual),
+			code.Make(code.OpPop)},
+			[]object.Object{
+				&object.Integer{Value: 68},
+				&object.Integer{Value: 25},
+				&object.Integer{Value: 21},
 			}},
 	}
 
