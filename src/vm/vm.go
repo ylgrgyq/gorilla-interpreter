@@ -7,12 +7,6 @@ import (
 	"object"
 )
 
-var (
-	TRUE  = &object.Boolean{Value: true}
-	FALSE = &object.Boolean{Value: false}
-	NULL  = &object.Null{}
-)
-
 const StackSize = 2048
 
 type VM struct {
@@ -72,7 +66,7 @@ func (v *VM) executeBinaryOperatorOnInteger(op code.OpCode, l int64, r int64) (o
 	switch op {
 	case code.OpAdd:
 		result = &object.Integer{Value: l + r}
-	case code.OpMinus:
+	case code.OpSubtraction:
 		result = &object.Integer{Value: l - r}
 	case code.OpMultiply:
 		result = &object.Integer{Value: l * r}
@@ -135,7 +129,39 @@ func (v *VM) executeBinaryOperator(op code.OpCode) error {
 	return err
 }
 
+func (v *VM) executeBangOperator() error {
+	val := v.popStack()
+	if val == nil {
+		return fmt.Errorf("bang operator need one operand")
+	}
+
+	switch val {
+	case object.TRUE:
+		return v.pushStack(object.FALSE)
+	case object.FALSE, object.NULL:
+		return v.pushStack(object.TRUE)
+	default:
+		return v.pushStack(object.FALSE)
+	}
+}
+
+func (v *VM) executeMinusOperator() error {
+	val := v.popStack()
+
+	if val == nil {
+		return fmt.Errorf("minus operator need one operand")
+	}
+
+	if val.Type() == object.INTEGER_OBJ {
+		intV := val.(*object.Integer).Value
+		return v.pushStack(&object.Integer{Value: -intV})
+	}
+
+	return fmt.Errorf("unsupportted minus operator on %T value", val)
+}
+
 func (v *VM) Run() error {
+	var err error
 	for ip := 0; ip < len(v.instructions); ip++ {
 		c := code.OpCode(v.instructions[ip])
 
@@ -144,28 +170,24 @@ func (v *VM) Run() error {
 			index := code.ReadUint16(v.instructions[ip+1:])
 			ip += 2
 
-			err := v.pushStack(v.constants[index])
-			if err != nil {
-				return err
-			}
-		case code.OpAdd, code.OpMinus, code.OpMultiply, code.OpDivide,
+			err = v.pushStack(v.constants[index])
+		case code.OpBang:
+			err = v.executeBangOperator()
+		case code.OpMinus:
+			err = v.executeMinusOperator()
+		case code.OpAdd, code.OpSubtraction, code.OpMultiply, code.OpDivide,
 			code.OpEqual, code.OpNotEqual, code.OpGreaterEqual, code.OpGreaterThan:
-			err := v.executeBinaryOperator(c)
-			if err != nil {
-				return err
-			}
+			err = v.executeBinaryOperator(c)
 		case code.OpTrue:
-			err := v.pushStack(TRUE)
-			if err != nil {
-				return err
-			}
+			err = v.pushStack(object.TRUE)
 		case code.OpFalse:
-			err := v.pushStack(FALSE)
-			if err != nil {
-				return err
-			}
+			err = v.pushStack(object.FALSE)
 		case code.OpPop:
 			v.popStack()
+		}
+
+		if err != nil {
+			return err
 		}
 	}
 

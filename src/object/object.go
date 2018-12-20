@@ -76,6 +76,19 @@ func (b *Boolean) Hash() HashKey {
 	return HashKey{Type: BOOLEAN_OBJ, Value: v}
 }
 
+var (
+	TRUE  = &Boolean{Value: true}
+	FALSE = &Boolean{Value: false}
+)
+
+func NativeBooleanToBooleanObj(b bool) *Boolean {
+	if b == TRUE.Value {
+		return TRUE
+	} else {
+		return FALSE
+	}
+}
+
 type String struct {
 	Value string
 }
@@ -94,16 +107,20 @@ func (s *String) Hash() HashKey {
 	return HashKey{Type: STRING_OBJ, Value: h.Sum64()}
 }
 
-type Null struct {
+type Internal_Null struct {
 }
 
-func (n *Null) Type() ObjectType {
+func (n *Internal_Null) Type() ObjectType {
 	return NULL_OBJ
 }
 
-func (n *Null) Inspect() string {
+func (n *Internal_Null) Inspect() string {
 	return "null"
 }
+
+var (
+	NULL = &Internal_Null{}
+)
 
 type ReturnValue struct {
 	Value Object

@@ -102,6 +102,7 @@ func TestIntegerArithmetic(t *testing.T) {
 		{"1 + 2", 3},
 		{"4 + 4", 8},
 		{"4 - 4 * 15 / 2", -26},
+		{"-1 + 2", 1},
 	}
 	runTests(t, tests)
 }
@@ -110,6 +111,7 @@ func TestComparation(t *testing.T) {
 	tests := []vmTestCase{
 		{"true", true},
 		{"false", false},
+		{"!false == true", true},
 		{"true == true", true},
 		{"true != false", true},
 		{"1 + 2 < 5", true},

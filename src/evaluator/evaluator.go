@@ -9,7 +9,7 @@ import (
 var (
 	TRUE  = &object.Boolean{Value: true}
 	FALSE = &object.Boolean{Value: false}
-	NULL  = &object.Null{}
+	NULL  = &object.Internal_Null{}
 )
 
 type Evaluable interface {

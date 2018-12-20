@@ -134,9 +134,15 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 		{"3", []code.Instructions{code.Make(code.OpConstant, 0),
 			code.Make(code.OpPop)},
 			[]object.Object{&object.Integer{Value: 3}}},
-		{"1 + 2",
+		{"-3", []code.Instructions{
+			code.Make(code.OpConstant, 0),
+			code.Make(code.OpMinus),
+			code.Make(code.OpPop)},
+			[]object.Object{&object.Integer{Value: 3}}},
+		{"-1 + 2",
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
+				code.Make(code.OpMinus),
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpAdd),
 				code.Make(code.OpPop)},
@@ -147,9 +153,9 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpConstant, 1),
-				code.Make(code.OpMinus),
+				code.Make(code.OpSubtraction),
 				code.Make(code.OpConstant, 2),
-				code.Make(code.OpMinus),
+				code.Make(code.OpSubtraction),
 				code.Make(code.OpConstant, 3),
 				code.Make(code.OpDivide),
 				code.Make(code.OpPop)},
@@ -164,7 +170,7 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpConstant, 2),
 				code.Make(code.OpMultiply),
-				code.Make(code.OpMinus),
+				code.Make(code.OpSubtraction),
 				code.Make(code.OpConstant, 3),
 				code.Make(code.OpDivide),
 				code.Make(code.OpPop)},
@@ -182,7 +188,7 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpMultiply),
 				code.Make(code.OpConstant, 3),
 				code.Make(code.OpDivide),
-				code.Make(code.OpMinus),
+				code.Make(code.OpSubtraction),
 				code.Make(code.OpPop)},
 			[]object.Object{
 				&object.Integer{Value: 4},
@@ -201,6 +207,13 @@ func TestCompileBoolean(t *testing.T) {
 			code.Make(code.OpPop)},
 			[]object.Object{}},
 		{"false", []code.Instructions{code.Make(code.OpFalse),
+			code.Make(code.OpPop)},
+			[]object.Object{}},
+		{"!false == true", []code.Instructions{
+			code.Make(code.OpFalse),
+			code.Make(code.OpBang),
+			code.Make(code.OpTrue),
+			code.Make(code.OpEqual),
 			code.Make(code.OpPop)},
 			[]object.Object{}},
 		{"((15 + 221) == 236) == (false != (68 < 103))", []code.Instructions{
@@ -229,7 +242,7 @@ func TestCompileBoolean(t *testing.T) {
 			code.Make(code.OpConstant, 0),
 			code.Make(code.OpConstant, 1),
 			code.Make(code.OpConstant, 2),
-			code.Make(code.OpMinus),
+			code.Make(code.OpSubtraction),
 			code.Make(code.OpGreaterEqual),
 			code.Make(code.OpPop)},
 			[]object.Object{
@@ -240,7 +253,7 @@ func TestCompileBoolean(t *testing.T) {
 		{"(68 - 25) > 21", []code.Instructions{
 			code.Make(code.OpConstant, 0),
 			code.Make(code.OpConstant, 1),
-			code.Make(code.OpMinus),
+			code.Make(code.OpSubtraction),
 			code.Make(code.OpConstant, 2),
 			code.Make(code.OpGreaterThan),
 			code.Make(code.OpPop)},
@@ -252,7 +265,7 @@ func TestCompileBoolean(t *testing.T) {
 		{"(68 - 25) >= 21", []code.Instructions{
 			code.Make(code.OpConstant, 0),
 			code.Make(code.OpConstant, 1),
-			code.Make(code.OpMinus),
+			code.Make(code.OpSubtraction),
 			code.Make(code.OpConstant, 2),
 			code.Make(code.OpGreaterEqual),
 			code.Make(code.OpPop)},

@@ -193,7 +193,7 @@ func (op Token) Precedence() int {
 		return 6
 	case ASTERISK, DIVIDE, REM, LSHIFT, RSHIFT, AND:
 		return 7
-	case LPAREN, INCREASE, DECREASE:
+	case BANG, LPAREN, INCREASE, DECREASE:
 		return 8
 	case LBRACKET:
 		return 9

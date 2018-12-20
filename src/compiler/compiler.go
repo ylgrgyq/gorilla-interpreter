@@ -57,7 +57,7 @@ func (c *Compiler) compileInfixExpression(node *ast.InfixExpression) error {
 	case "+":
 		c.emit(code.OpAdd)
 	case "-":
-		c.emit(code.OpMinus)
+		c.emit(code.OpSubtraction)
 	case "*":
 		c.emit(code.OpMultiply)
 	case "/":
@@ -92,7 +92,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 		c.emit(code.OpPop)
+	case *ast.PrefixExpression:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
 
+		switch node.Operator {
+		case "-":
+			c.emit(code.OpMinus)
+		case "!":
+			c.emit(code.OpBang)
+		default:
+			return fmt.Errorf("unsupported prefix operator %s", node.Operator)
+		}
 	case *ast.InfixExpression:
 		err := c.compileInfixExpression(node)
 		if err != nil {

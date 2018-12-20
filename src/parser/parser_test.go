@@ -260,6 +260,8 @@ func TestExpressionPrecedence(t *testing.T) {
 		input        string
 		expectString string
 	}{
+		{"-1 + 2;  ", "((-1) + 2)"},
+		{"!false == true;  ", "((!false) == true)"},
 		{"123123 + 111 + 222;  ", "((123123 + 111) + 222)"},
 		{" 12 - 56 - haha;  ", "((12 - 56) - haha)"},
 		{" niuniu + 11 * haha;", "(niuniu + (11 * haha))"},
