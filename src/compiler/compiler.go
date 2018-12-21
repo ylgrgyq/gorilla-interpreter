@@ -10,6 +10,9 @@ import (
 type Compiler struct {
 	instructions code.Instructions
 	constants    []object.Object
+
+	lastOpCodeStartPos       int
+	secondLastOpCodeStartPos int
 }
 
 func New() *Compiler {
@@ -21,10 +24,17 @@ func (c *Compiler) addConstant(value object.Object) int {
 	return len(c.constants) - 1
 }
 
+func (c *Compiler) updateLastOpCodeStartPos(lastOpCodeStartPos int) {
+	secondLast := c.lastOpCodeStartPos
+	c.lastOpCodeStartPos = lastOpCodeStartPos
+	c.secondLastOpCodeStartPos = secondLast
+}
+
 func (c *Compiler) emit(op code.OpCode, operands ...int) int {
 	ins := code.Make(op, operands...)
 	startPos := len(c.instructions)
 	c.instructions = append(c.instructions, ins...)
+	c.updateLastOpCodeStartPos(startPos)
 	return startPos
 }
 
@@ -77,9 +87,33 @@ func (c *Compiler) compileInfixExpression(node *ast.InfixExpression) error {
 	return nil
 }
 
+func (c *Compiler) replaceOperands(opCodeStartPos int, newOperands ...int) {
+	codeToReplace := c.instructions[opCodeStartPos]
+	newIns := code.Make(code.OpCode(codeToReplace), newOperands...)
+	for i, ins := range newIns {
+		c.instructions[i+opCodeStartPos] = ins
+	}
+}
+
+func (c *Compiler) removeLastOpPop() {
+	lastOpCode := code.OpCode(c.instructions[c.lastOpCodeStartPos])
+	if lastOpCode == code.OpPop {
+		c.instructions = c.instructions[:c.lastOpCodeStartPos]
+		c.lastOpCodeStartPos = c.secondLastOpCodeStartPos
+		c.secondLastOpCodeStartPos = -1
+	}
+}
+
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
+		for _, statement := range node.Statements {
+			err := c.Compile(statement)
+			if err != nil {
+				return err
+			}
+		}
+	case *ast.BlockExpression:
 		for _, statement := range node.Statements {
 			err := c.Compile(statement)
 			if err != nil {
@@ -111,6 +145,45 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
+	case *ast.IfExpression:
+		err := c.Compile(node.Condition)
+		if err != nil {
+			return err
+		}
+
+		jumpNotTruethyPos := c.emit(code.OpJumptNotTruethy, 9999)
+		err = c.Compile(node.ThenBody)
+		if err != nil {
+			return err
+		}
+
+		// remove last OpPop to keep the last value of ThenBody in stack
+		c.removeLastOpPop()
+
+		if node.ElseBody == nil {
+			// if we don't have ElseBody, the end of ThenBody is the end for this If Expression
+			endOfThenBody := len(c.instructions)
+			c.replaceOperands(jumpNotTruethyPos, endOfThenBody)
+		} else {
+			// if we have ElseBody we have to emit a OpJump as a part of the ThenBody
+			// and let OpJumpNotTruethy jump over this OpJump to the start of the ElseBody
+			jumpPos := c.emit(code.OpJump, 9999)
+			endOfJump := len(c.instructions)
+
+			c.replaceOperands(jumpNotTruethyPos, endOfJump)
+
+			err = c.Compile(node.ElseBody)
+			if err != nil {
+				return err
+			}
+
+			// same reason as remove last OpPop from ThenBody
+			c.removeLastOpPop()
+
+			endOfElseBody := len(c.instructions)
+			c.replaceOperands(jumpPos, endOfElseBody)
+		}
+
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))

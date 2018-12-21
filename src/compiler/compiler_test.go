@@ -26,7 +26,7 @@ func parse(input string) (*ast.Program, error) {
 
 func testInstructions(expectIns code.Instructions, actualIns code.Instructions) error {
 	if len(expectIns) != len(actualIns) {
-		return fmt.Errorf("expect instructions length not equals to actual instructions length. want:%s got:%s",
+		return fmt.Errorf("expect instructions length not equals to actual instructions length. want:\n%s\ngot:\n%s",
 			code.InstructionsString(expectIns), code.InstructionsString(actualIns))
 	}
 
@@ -273,6 +273,55 @@ func TestCompileBoolean(t *testing.T) {
 				&object.Integer{Value: 68},
 				&object.Integer{Value: 25},
 				&object.Integer{Value: 21},
+			}},
+	}
+
+	runTests(t, tests)
+}
+
+func TestConditional(t *testing.T) {
+	tests := []compileTestCase{
+		{"if (true) {100}; 9999",
+			[]code.Instructions{
+				code.Make(code.OpTrue),
+				code.Make(code.OpJumptNotTruethy, 7),
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 100},
+				&object.Integer{Value: 9999},
+			}},
+		{"if (false) {100}; 9999",
+			[]code.Instructions{
+				code.Make(code.OpFalse),
+				code.Make(code.OpJumptNotTruethy, 7),
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 100},
+				&object.Integer{Value: 9999},
+			}},
+		{"if (false) {100} else {50}; 9999",
+			[]code.Instructions{
+				code.Make(code.OpFalse),
+				code.Make(code.OpJumptNotTruethy, 10),
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpJump, 13),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 100},
+				&object.Integer{Value: 50},
+				&object.Integer{Value: 9999},
 			}},
 	}
 
