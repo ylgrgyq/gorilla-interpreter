@@ -160,18 +160,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// remove last OpPop to keep the last value of ThenBody in stack
 		c.removeLastOpPop()
 
+		jumpPos := c.emit(code.OpJump, 9999)
+		endOfThenBody := len(c.instructions)
+		c.replaceOperands(jumpNotTruethyPos, endOfThenBody)
+
 		if node.ElseBody == nil {
 			// if we don't have ElseBody, the end of ThenBody is the end for this If Expression
-			endOfThenBody := len(c.instructions)
-			c.replaceOperands(jumpNotTruethyPos, endOfThenBody)
+			c.emit(code.OpNull)
 		} else {
 			// if we have ElseBody we have to emit a OpJump as a part of the ThenBody
 			// and let OpJumpNotTruethy jump over this OpJump to the start of the ElseBody
-			jumpPos := c.emit(code.OpJump, 9999)
-			endOfJump := len(c.instructions)
-
-			c.replaceOperands(jumpNotTruethyPos, endOfJump)
-
 			err = c.Compile(node.ElseBody)
 			if err != nil {
 				return err
@@ -179,10 +177,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 			// same reason as remove last OpPop from ThenBody
 			c.removeLastOpPop()
-
-			endOfElseBody := len(c.instructions)
-			c.replaceOperands(jumpPos, endOfElseBody)
 		}
+
+		endOfElseBody := len(c.instructions)
+		c.replaceOperands(jumpPos, endOfElseBody)
 
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}

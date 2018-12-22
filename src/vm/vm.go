@@ -160,6 +160,21 @@ func (v *VM) executeMinusOperator() error {
 	return fmt.Errorf("unsupportted minus operator on %T value", val)
 }
 
+func isTruethy(obj object.Object) bool {
+	if obj == nil {
+		return false
+	}
+
+	switch obj := obj.(type) {
+	case *object.Boolean:
+		return obj.Value
+	case *object.Internal_Null:
+		return false
+	default:
+		return true
+	}
+}
+
 func (v *VM) Run() error {
 	var err error
 	for ip := 0; ip < len(v.instructions); ip++ {
@@ -171,6 +186,8 @@ func (v *VM) Run() error {
 			ip += 2
 
 			err = v.pushStack(v.constants[index])
+		case code.OpNull:
+			err = v.pushStack(object.NULL)
 		case code.OpBang:
 			err = v.executeBangOperator()
 		case code.OpMinus:
@@ -184,6 +201,17 @@ func (v *VM) Run() error {
 			err = v.pushStack(object.FALSE)
 		case code.OpPop:
 			v.popStack()
+		case code.OpJumptNotTruethy:
+			targetPos := int(code.ReadUint16(v.instructions[ip+1:]))
+			ip += 2
+
+			conditionVal := v.popStack()
+			if !isTruethy(conditionVal) {
+				ip = targetPos - 1
+			}
+		case code.OpJump:
+			targetPos := int(code.ReadUint16(v.instructions[ip+1:]))
+			ip = targetPos - 1
 		}
 
 		if err != nil {

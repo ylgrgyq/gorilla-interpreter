@@ -284,8 +284,10 @@ func TestConditional(t *testing.T) {
 		{"if (true) {100}; 9999",
 			[]code.Instructions{
 				code.Make(code.OpTrue),
-				code.Make(code.OpJumptNotTruethy, 7),
+				code.Make(code.OpJumptNotTruethy, 10),
 				code.Make(code.OpConstant, 0),
+				code.Make(code.OpJump, 11),
+				code.Make(code.OpNull),
 				code.Make(code.OpPop),
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpPop),
@@ -297,8 +299,10 @@ func TestConditional(t *testing.T) {
 		{"if (false) {100}; 9999",
 			[]code.Instructions{
 				code.Make(code.OpFalse),
-				code.Make(code.OpJumptNotTruethy, 7),
+				code.Make(code.OpJumptNotTruethy, 10),
 				code.Make(code.OpConstant, 0),
+				code.Make(code.OpJump, 11),
+				code.Make(code.OpNull),
 				code.Make(code.OpPop),
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpPop),

@@ -49,6 +49,15 @@ func testBooleanObject(expected bool, actual object.Object) error {
 	return nil
 }
 
+func testNilObject(actual object.Object) error {
+	_, ok := actual.(*object.Internal_Null)
+	if !ok {
+		return fmt.Errorf("object is not NULL. got=%T (%+v)", actual, actual)
+	}
+
+	return nil
+}
+
 func testExpectedObject(t *testing.T, input string, expcet interface{}, actual object.Object) {
 	t.Helper()
 
@@ -60,6 +69,11 @@ func testExpectedObject(t *testing.T, input string, expcet interface{}, actual o
 		}
 	case bool:
 		err := testBooleanObject(expected, actual)
+		if err != nil {
+			t.Errorf("test boolean object failed for input: %s. %s", input, err)
+		}
+	case nil:
+		err := testNilObject(actual)
 		if err != nil {
 			t.Errorf("test boolean object failed for input: %s. %s", input, err)
 		}
@@ -119,6 +133,17 @@ func TestComparation(t *testing.T) {
 		{"1 + 2 <= 2 + 1", true},
 		{"1 + 2 >= 2 + 1", true},
 		{"1 + 4 >= 8 + 1", false},
+	}
+	runTests(t, tests)
+}
+
+func TestIfExpression(t *testing.T) {
+	tests := []vmTestCase{
+		{"if (true) {100}", 100},
+		{"if (false) {100} else {50}", 50},
+		{"if (1 < 10) {99} else {11}", 99},
+		{"if (102 >= 1000) {99} else {11}", 11},
+		{"if (false) {100}", nil},
 	}
 	runTests(t, tests)
 }
