@@ -8,6 +8,7 @@ import (
 )
 
 const StackSize = 2048
+const GlobalSize = 65535
 
 type VM struct {
 	instructions code.Instructions
@@ -17,6 +18,8 @@ type VM struct {
 	sp    int
 
 	lastPop object.Object
+
+	globals []object.Object
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
@@ -25,7 +28,14 @@ func New(bytecode *compiler.Bytecode) *VM {
 		constants:    bytecode.Constants,
 		stack:        make([]object.Object, StackSize),
 		sp:           -1,
+		globals:      make([]object.Object, GlobalSize),
 	}
+}
+
+func NewWithGlobals(bytecode *compiler.Bytecode, globals []object.Object) *VM {
+	vm := New(bytecode)
+	vm.globals = globals
+	return vm
 }
 
 func (v *VM) pushStack(o object.Object) error {
@@ -186,6 +196,16 @@ func (v *VM) Run() error {
 			ip += 2
 
 			err = v.pushStack(v.constants[index])
+		case code.OpSetGlobal:
+			index := code.ReadUint16(v.instructions[ip+1:])
+			ip += 2
+			globalV := v.popStack()
+			v.globals[index] = globalV
+		case code.OpGetGlobal:
+			index := code.ReadUint16(v.instructions[ip+1:])
+			ip += 2
+			globalV := v.globals[index]
+			v.pushStack(globalV)
 		case code.OpNull:
 			err = v.pushStack(object.NULL)
 		case code.OpBang:

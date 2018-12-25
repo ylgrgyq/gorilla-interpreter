@@ -147,3 +147,12 @@ func TestIfExpression(t *testing.T) {
 	}
 	runTests(t, tests)
 }
+
+func TestLetStatement(t *testing.T) {
+	tests := []vmTestCase{
+		{"let a = 1; a;", 1},
+		{"let a = 1; let b = a;  b;", 1},
+	}
+
+	runTests(t, tests)
+}

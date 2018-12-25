@@ -13,10 +13,16 @@ type Compiler struct {
 
 	lastOpCodeStartPos       int
 	secondLastOpCodeStartPos int
+
+	symbolTable *SymbolTable
 }
 
 func New() *Compiler {
-	return &Compiler{instructions: []byte{}, constants: []object.Object{}}
+	return &Compiler{instructions: []byte{}, constants: []object.Object{}, symbolTable: NewSymbolTable()}
+}
+
+func NewWithStates(constants []object.Object, symbolTable *SymbolTable) *Compiler {
+	return &Compiler{instructions: []byte{}, constants: constants, symbolTable: symbolTable}
 }
 
 func (c *Compiler) addConstant(value object.Object) int {
@@ -181,7 +187,23 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		endOfElseBody := len(c.instructions)
 		c.replaceOperands(jumpPos, endOfElseBody)
+	case *ast.LetStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
 
+		symbol := c.symbolTable.Define(node.Name.Value)
+		c.emit(code.OpSetGlobal, symbol.Index)
+		c.emit(code.OpPop)
+	case *ast.Identifier:
+		identifier := node.Value
+		symbol, ok := c.symbolTable.Resolve(identifier)
+		if !ok {
+			return fmt.Errorf("undefined variable %s", identifier)
+		}
+
+		c.emit(code.OpGetGlobal, symbol.Index)
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))

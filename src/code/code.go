@@ -25,6 +25,8 @@ const (
 	OpBang
 	OpJumptNotTruethy
 	OpJump
+	OpGetGlobal
+	OpSetGlobal
 	OpPop
 	OpNull
 )
@@ -50,6 +52,8 @@ var definitionMap = map[OpCode]*Definition{
 	OpBang:            &Definition{"OpBang", []int{}},
 	OpJumptNotTruethy: &Definition{"OpJumpNotTruethy", []int{2}},
 	OpJump:            &Definition{"OpJump", []int{2}},
+	OpGetGlobal:       &Definition{"OpGetGlobal", []int{2}},
+	OpSetGlobal:       &Definition{"OpSetGlobal", []int{2}},
 	OpPop:             &Definition{"OpPop", []int{}},
 	OpNull:            &Definition{"OpNull", []int{}},
 }

@@ -331,3 +331,55 @@ func TestConditional(t *testing.T) {
 
 	runTests(t, tests)
 }
+
+func TestGetSetGlobal(t *testing.T) {
+	tests := []compileTestCase{
+		{`let a = 1;
+		  let b = 2;`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpPop),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpSetGlobal, 1),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+			},
+		},
+		{`let a = 1;
+		  a;`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpPop),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+			},
+		},
+		{`let a = 1;
+		  let b = a;
+		  b;`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpPop),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpSetGlobal, 1),
+				code.Make(code.OpPop),
+				code.Make(code.OpGetGlobal, 1),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+			},
+		},
+	}
+
+	runTests(t, tests)
+}

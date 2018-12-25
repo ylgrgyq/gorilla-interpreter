@@ -44,6 +44,10 @@ func StartWithInterpreter(in io.Reader, out io.Writer) {
 func StartWithCompiler(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
 
+	constants := []object.Object{}
+	globalSymbalTable := compiler.NewSymbolTable()
+	globals := make([]object.Object, vm.GlobalSize)
+
 	for {
 		fmt.Printf(PROMPT)
 		scanned := scanner.Scan()
@@ -59,14 +63,14 @@ func StartWithCompiler(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		c := compiler.New()
+		c := compiler.NewWithStates(constants, globalSymbalTable)
 		err = c.Compile(program)
 		if err != nil {
 			fmt.Fprintf(out, "compile program failed: %s", err)
 			continue
 		}
 
-		vm := vm.New(c.Bytecode())
+		vm := vm.NewWithGlobals(c.Bytecode(), globals)
 		err = vm.Run()
 		if err != nil {
 			fmt.Fprintf(out, "vm run program failed: %s", err)
