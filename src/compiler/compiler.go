@@ -213,6 +213,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		} else {
 			c.emit(code.OpFalse)
 		}
+	case *ast.String:
+		v := &object.String{Value: node.Value}
+		c.emit(code.OpConstant, c.addConstant(v))
 	default:
 		return fmt.Errorf("unknown node type %T", node)
 	}

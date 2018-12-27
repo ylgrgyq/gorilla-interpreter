@@ -111,6 +111,22 @@ func (v *VM) executeBinaryOperatorOnBoolean(op code.OpCode, l bool, r bool) (obj
 	return result, nil
 }
 
+func (v *VM) executeBinaryOperatorOnString(op code.OpCode, l string, r string) (object.Object, error) {
+	var result object.Object
+	switch op {
+	case code.OpEqual:
+		result = &object.Boolean{Value: l == r}
+	case code.OpNotEqual:
+		result = &object.Boolean{Value: l != r}
+	case code.OpAdd:
+		result = &object.String{Value: l + r}
+	default:
+		return nil, fmt.Errorf("unsupportted operator on string: %d", op)
+	}
+
+	return result, nil
+}
+
 func (v *VM) executeBinaryOperator(op code.OpCode) error {
 	right := v.popStack()
 	left := v.popStack()
@@ -128,6 +144,13 @@ func (v *VM) executeBinaryOperator(op code.OpCode) error {
 		l := left.(*object.Boolean).Value
 		r := right.(*object.Boolean).Value
 		result, err = v.executeBinaryOperatorOnBoolean(op, l, r)
+		if err != nil {
+			return err
+		}
+	} else if left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ {
+		l := left.(*object.String).Value
+		r := right.(*object.String).Value
+		result, err = v.executeBinaryOperatorOnString(op, l, r)
 		if err != nil {
 			return err
 		}

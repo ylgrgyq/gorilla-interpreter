@@ -49,6 +49,19 @@ func testBooleanObject(expected bool, actual object.Object) error {
 	return nil
 }
 
+func testStringObject(expected string, actual object.Object) error {
+	r, ok := actual.(*object.String)
+	if !ok {
+		return fmt.Errorf("object is not object.String. got=%T (%+v)", actual, actual)
+	}
+
+	if expected != r.Value {
+		return fmt.Errorf("assert failed. want=%q, got=%q", expected, r.Value)
+	}
+
+	return nil
+}
+
 func testNilObject(actual object.Object) error {
 	_, ok := actual.(*object.Internal_Null)
 	if !ok {
@@ -71,6 +84,11 @@ func testExpectedObject(t *testing.T, input string, expcet interface{}, actual o
 		err := testBooleanObject(expected, actual)
 		if err != nil {
 			t.Errorf("test boolean object failed for input: %s. %s", input, err)
+		}
+	case string:
+		err := testStringObject(expected, actual)
+		if err != nil {
+			t.Errorf("test string object failed for input: %s. %s", input, err)
 		}
 	case nil:
 		err := testNilObject(actual)
@@ -117,6 +135,15 @@ func TestIntegerArithmetic(t *testing.T) {
 		{"4 + 4", 8},
 		{"4 - 4 * 15 / 2", -26},
 		{"-1 + 2", 1},
+	}
+	runTests(t, tests)
+}
+
+func TestStringOperator(t *testing.T) {
+	tests := []vmTestCase{
+		{"\"hello\" == \"hello\" ", true},
+		{"\"hello\" == \"world\" ", false},
+		{"\"hello\" + \"world\" ", "helloworld"},
 	}
 	runTests(t, tests)
 }
