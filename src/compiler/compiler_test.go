@@ -69,6 +69,20 @@ func testBoolean(expect bool, actual object.Object) error {
 	return nil
 }
 
+func testString(expect string, actual object.Object) error {
+	r, ok := actual.(*object.String)
+
+	if !ok {
+		return fmt.Errorf("compiled value not string. got:%T (%+v)", actual, actual)
+	}
+
+	if expect != r.Value {
+		return fmt.Errorf("compare string failed. want:%q, got:%q", expect, r.Value)
+	}
+
+	return nil
+}
+
 func testConstants(expectConstants []object.Object, actualConstans []object.Object) error {
 	if len(expectConstants) != len(actualConstans) {
 		return fmt.Errorf("compare constants length failed. want:%d got:%d",
@@ -88,6 +102,11 @@ func testConstants(expectConstants []object.Object, actualConstans []object.Obje
 			}
 		case *object.Boolean:
 			err := testBoolean(expect.Value, actual)
+			if err != nil {
+				return err
+			}
+		case *object.String:
+			err := testString(expect.Value, actual)
 			if err != nil {
 				return err
 			}
@@ -376,6 +395,68 @@ func TestGetSetGlobal(t *testing.T) {
 				code.Make(code.OpPop),
 			},
 			[]object.Object{
+				&object.Integer{Value: 1},
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestArray(t *testing.T) {
+	tests := []compileTestCase{
+		{`[]`,
+			[]code.Instructions{
+				code.Make(code.OpArray, 0),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{},
+		},
+		{`[1, 2 + 15, false, "hello" + "world"]`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpAdd),
+				code.Make(code.OpFalse),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, 4),
+				code.Make(code.OpAdd),
+				code.Make(code.OpArray, 4),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 15},
+				&object.String{Value: "hello"},
+				&object.String{Value: "world"},
+			},
+		},
+		{`[1, 2 + 15, false, "hello" + "world"][26 + 1]`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpAdd),
+				code.Make(code.OpFalse),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, 4),
+				code.Make(code.OpAdd),
+				code.Make(code.OpArray, 4),
+				code.Make(code.OpConstant, 5),
+				code.Make(code.OpConstant, 6),
+				code.Make(code.OpAdd),
+				code.Make(code.OpIndex),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 15},
+				&object.String{Value: "hello"},
+				&object.String{Value: "world"},
+				&object.Integer{Value: 26},
 				&object.Integer{Value: 1},
 			},
 		},

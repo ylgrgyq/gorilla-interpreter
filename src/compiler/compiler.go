@@ -70,6 +70,8 @@ func (c *Compiler) compileInfixExpression(node *ast.InfixExpression) error {
 	}
 
 	switch node.Operator {
+	case "[":
+		c.emit(code.OpIndex)
 	case "+":
 		c.emit(code.OpAdd)
 	case "-":
@@ -196,6 +198,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 		symbol := c.symbolTable.Define(node.Name.Value)
 		c.emit(code.OpSetGlobal, symbol.Index)
 		c.emit(code.OpPop)
+	case *ast.ArrayLiteral:
+		var err error
+		for _, e := range node.Elements {
+			err = c.Compile(e)
+			if err != nil {
+				return err
+			}
+		}
+
+		c.emit(code.OpArray, len(node.Elements))
 	case *ast.Identifier:
 		identifier := node.Value
 		symbol, ok := c.symbolTable.Resolve(identifier)

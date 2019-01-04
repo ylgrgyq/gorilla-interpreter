@@ -13,6 +13,7 @@ const (
 	OpConstant OpCode = iota
 	OpTrue
 	OpFalse
+	OpArray
 	OpAdd
 	OpSubtraction
 	OpMultiply
@@ -23,6 +24,7 @@ const (
 	OpGreaterThan
 	OpGreaterEqual
 	OpBang
+	OpIndex
 	OpJumptNotTruethy
 	OpJump
 	OpGetGlobal
@@ -40,6 +42,7 @@ var definitionMap = map[OpCode]*Definition{
 	OpConstant:        &Definition{"OpConstant", []int{2}},
 	OpTrue:            &Definition{"OpTrue", []int{}},
 	OpFalse:           &Definition{"OpFalse", []int{}},
+	OpArray:           &Definition{"OpArray", []int{2}},
 	OpAdd:             &Definition{"OpAdd", []int{}},
 	OpSubtraction:     &Definition{"OpSubtraction", []int{}},
 	OpMultiply:        &Definition{"OpMultiply", []int{}},
@@ -50,6 +53,7 @@ var definitionMap = map[OpCode]*Definition{
 	OpGreaterThan:     &Definition{"OpGreaterThan", []int{}},
 	OpGreaterEqual:    &Definition{"OpGreaterEqual", []int{}},
 	OpBang:            &Definition{"OpBang", []int{}},
+	OpIndex:           &Definition{"OpIndex", []int{2}},
 	OpJumptNotTruethy: &Definition{"OpJumpNotTruethy", []int{2}},
 	OpJump:            &Definition{"OpJump", []int{2}},
 	OpGetGlobal:       &Definition{"OpGetGlobal", []int{2}},

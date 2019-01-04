@@ -242,6 +242,17 @@ func (v *VM) Run() error {
 			err = v.pushStack(object.TRUE)
 		case code.OpFalse:
 			err = v.pushStack(object.FALSE)
+		case code.OpArray:
+			length := int(code.ReadUint16(v.instructions[ip+1:]))
+			ip += 2
+
+			elems := make([]object.Object, length)
+			for i := length - 1; i >= 0; i-- {
+				newV := v.popStack()
+				elems[i] = newV
+			}
+
+			err = v.pushStack(&object.Array{Elements: elems})
 		case code.OpPop:
 			v.popStack()
 		case code.OpJumptNotTruethy:

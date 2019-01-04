@@ -90,6 +90,19 @@ func testExpectedObject(t *testing.T, input string, expcet interface{}, actual o
 		if err != nil {
 			t.Errorf("test string object failed for input: %s. %s", input, err)
 		}
+	case []interface{}:
+		r, ok := actual.(*object.Array)
+		if !ok {
+			t.Errorf("object is not object.Array. got=%T (%+v)", actual, actual)
+		}
+
+		if len(expected) != len(r.Elements) {
+			t.Errorf("array length is not equal. want=%d got=%d", len(expected), len(r.Elements))
+		}
+
+		for i, e := range expected {
+			testExpectedObject(t, input, e, r.Elements[i])
+		}
 	case nil:
 		err := testNilObject(actual)
 		if err != nil {
@@ -179,6 +192,17 @@ func TestLetStatement(t *testing.T) {
 	tests := []vmTestCase{
 		{"let a = 1; a;", 1},
 		{"let a = 1; let b = a;  b;", 1},
+	}
+
+	runTests(t, tests)
+}
+
+func TestArray(t *testing.T) {
+	tests := []vmTestCase{
+		{"[]", []interface{}{}},
+		{"[1, 2, 3]", []interface{}{1, 2, 3}},
+		{"[1 + 2, 3 * 4, 5 + 6]", []interface{}{3, 12, 11}},
+		{"[1, 2 + 4, false, \"hello\" + \"world\"]", []interface{}{1, 6, false, "helloworld"}},
 	}
 
 	runTests(t, tests)
