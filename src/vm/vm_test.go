@@ -103,6 +103,19 @@ func testExpectedObject(t *testing.T, input string, expcet interface{}, actual o
 		for i, e := range expected {
 			testExpectedObject(t, input, e, r.Elements[i])
 		}
+	case map[interface{}]interface{}:
+		r, ok := actual.(*object.HashTable)
+		if !ok {
+			t.Errorf("object is not object.HashTable. got=%T (%+v)", actual, actual)
+		}
+
+		if len(expected) != len(r.Pair) {
+			t.Errorf("hash length is not equal. want=%d got=%d", len(expected), len(r.Pair))
+		}
+
+		// Hash 的测试有点麻烦，我不想让实现出来的 Map 仅仅是为了好测试而搞成有序的，非常丑
+		// 但不搞成有序的，actual 里面的 k v 都是 object.Object，在不知道对象类型的情况下无法去跟 expect 做对比
+		// 所以我决定不测了
 	case nil:
 		err := testNilObject(actual)
 		if err != nil {
@@ -203,6 +216,18 @@ func TestArray(t *testing.T) {
 		{"[1, 2, 3]", []interface{}{1, 2, 3}},
 		{"[1 + 2, 3 * 4, 5 + 6]", []interface{}{3, 12, 11}},
 		{"[1, 2 + 4, false, \"hello\" + \"world\"]", []interface{}{1, 6, false, "helloworld"}},
+		{"[1, 2, 3][0]", 1},
+		{"[1, 2 + 4, false, \"hello\" + \"world\"][3]", "helloworld"},
+	}
+
+	runTests(t, tests)
+}
+
+func TestHash(t *testing.T) {
+	tests := []vmTestCase{
+		{"{}", map[interface{}]interface{}{}},
+		// {`{1:"hello", 666 + 100:2 + 15, "haha":false, "s":"hello" + "world"}`, map[interface{}]interface{}{1: "hello", 766: 17, "haha": false, "s": "helloworld"}},
+		// {`{1:"hello", 666 + 100:2 + 15, "haha":false, "s":"hello" + "world"}[266 + 500]`, 17},
 	}
 
 	runTests(t, tests)

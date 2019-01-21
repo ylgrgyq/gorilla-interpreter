@@ -412,6 +412,23 @@ func TestArray(t *testing.T) {
 			},
 			[]object.Object{},
 		},
+		{`[1,2,3][0]`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpArray, 3),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpIndex),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 0},
+			},
+		},
 		{`[1, 2 + 15, false, "hello" + "world"]`,
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
@@ -458,6 +475,59 @@ func TestArray(t *testing.T) {
 				&object.String{Value: "world"},
 				&object.Integer{Value: 26},
 				&object.Integer{Value: 1},
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestHash(t *testing.T) {
+	tests := []compileTestCase{
+		{`{}`,
+			[]code.Instructions{
+				code.Make(code.OpHash, 0),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{},
+		},
+		{`{1:2,3:4}`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpHash, 2),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 4},
+			},
+		},
+		{`{1:2,3:4,5:6}[3]`,
+			[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, 4),
+				code.Make(code.OpConstant, 5),
+				code.Make(code.OpHash, 3),
+				code.Make(code.OpConstant, 6),
+				code.Make(code.OpIndex),
+				code.Make(code.OpPop),
+			},
+			[]object.Object{
+				&object.Integer{Value: 1},
+				&object.Integer{Value: 2},
+				&object.Integer{Value: 3},
+				&object.Integer{Value: 4},
+				&object.Integer{Value: 5},
+				&object.Integer{Value: 6},
+				&object.Integer{Value: 3},
 			},
 		},
 	}

@@ -14,6 +14,7 @@ const (
 	OpTrue
 	OpFalse
 	OpArray
+	OpHash
 	OpAdd
 	OpSubtraction
 	OpMultiply
@@ -43,6 +44,7 @@ var definitionMap = map[OpCode]*Definition{
 	OpTrue:            &Definition{"OpTrue", []int{}},
 	OpFalse:           &Definition{"OpFalse", []int{}},
 	OpArray:           &Definition{"OpArray", []int{2}},
+	OpHash:            &Definition{"OpHash", []int{2}},
 	OpAdd:             &Definition{"OpAdd", []int{}},
 	OpSubtraction:     &Definition{"OpSubtraction", []int{}},
 	OpMultiply:        &Definition{"OpMultiply", []int{}},
@@ -53,7 +55,7 @@ var definitionMap = map[OpCode]*Definition{
 	OpGreaterThan:     &Definition{"OpGreaterThan", []int{}},
 	OpGreaterEqual:    &Definition{"OpGreaterEqual", []int{}},
 	OpBang:            &Definition{"OpBang", []int{}},
-	OpIndex:           &Definition{"OpIndex", []int{2}},
+	OpIndex:           &Definition{"OpIndex", []int{}},
 	OpJumptNotTruethy: &Definition{"OpJumpNotTruethy", []int{2}},
 	OpJump:            &Definition{"OpJump", []int{2}},
 	OpGetGlobal:       &Definition{"OpGetGlobal", []int{2}},

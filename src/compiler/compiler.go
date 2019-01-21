@@ -208,6 +208,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		c.emit(code.OpArray, len(node.Elements))
+	case *ast.HashLiteral:
+		var err error
+		for k, v := range node.Pair {
+			err = c.Compile(k)
+			if err != nil {
+				return err
+			}
+			err = c.Compile(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		c.emit(code.OpHash, len(node.Pair))
 	case *ast.Identifier:
 		identifier := node.Value
 		symbol, ok := c.symbolTable.Resolve(identifier)

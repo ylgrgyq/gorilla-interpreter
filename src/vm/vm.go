@@ -238,6 +238,31 @@ func (v *VM) Run() error {
 		case code.OpAdd, code.OpSubtraction, code.OpMultiply, code.OpDivide,
 			code.OpEqual, code.OpNotEqual, code.OpGreaterEqual, code.OpGreaterThan:
 			err = v.executeBinaryOperator(c)
+		case code.OpIndex:
+			index := v.popStack()
+			coll := v.popStack()
+
+			switch coll := coll.(type) {
+			case *object.Array:
+				i, ok := index.(*object.Integer)
+				if !ok {
+					err = fmt.Errorf("index must be Integer for array, got: %v", index)
+					break
+				}
+				v.pushStack(coll.Elements[i.Value])
+			case *object.HashTable:
+				i, ok := index.(object.Hashable)
+				if !ok {
+					err = fmt.Errorf("index must be Hashable for Hash, got: %v", index)
+					break
+				}
+				ret, ok := coll.Pair[i.Hash()]
+				if !ok {
+					v.pushStack(object.NULL)
+				} else {
+					v.pushStack(ret.Value)
+				}
+			}
 		case code.OpTrue:
 			err = v.pushStack(object.TRUE)
 		case code.OpFalse:
@@ -253,6 +278,23 @@ func (v *VM) Run() error {
 			}
 
 			err = v.pushStack(&object.Array{Elements: elems})
+		case code.OpHash:
+			length := int(code.ReadUint16(v.instructions[ip+1:]))
+			ip += 2
+
+			pairs := make(map[object.HashKey]object.HashPair)
+			for i := length - 1; i >= 0; i-- {
+				newK := v.popStack()
+				newV := v.popStack()
+
+				h, ok := newK.(object.Hashable)
+				if !ok {
+					err = fmt.Errorf("key type in HashLiteral is not Hashable. got %q", newK.Type())
+				}
+				pairs[h.Hash()] = object.HashPair{Key: newK, Value: newV}
+			}
+
+			err = v.pushStack(&object.HashTable{Pair: pairs})
 		case code.OpPop:
 			v.popStack()
 		case code.OpJumptNotTruethy:
