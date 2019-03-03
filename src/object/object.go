@@ -3,6 +3,7 @@ package object
 import (
 	"ast"
 	"bytes"
+	"code"
 	"fmt"
 	"hash/fnv"
 	"strings"
@@ -11,16 +12,17 @@ import (
 type ObjectType string
 
 const (
-	INTEGER_OBJ   = "INTEGER"
-	BOOLEAN_OBJ   = "BOOLEAN"
-	STRING_OBJ    = "STRING"
-	NULL_OBJ      = "NULL"
-	RETURN_OBJ    = "RETURN_VALUE"
-	ERROR_OBJ     = "ERROR"
-	FUNCTION_OBJ  = "FUNCTION"
-	BUILTIN_OBJ   = "BUILTIN"
-	ARRAY_OBJ     = "ARRAY"
-	HASHTABLE_OBJ = "HASHTABLE"
+	INTEGER_OBJ           = "INTEGER"
+	BOOLEAN_OBJ           = "BOOLEAN"
+	STRING_OBJ            = "STRING"
+	NULL_OBJ              = "NULL"
+	RETURN_OBJ            = "RETURN_VALUE"
+	ERROR_OBJ             = "ERROR"
+	FUNCTION_OBJ          = "FUNCTION"
+	BUILTIN_OBJ           = "BUILTIN"
+	ARRAY_OBJ             = "ARRAY"
+	HASHTABLE_OBJ         = "HASHTABLE"
+	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
 )
 
 type Object interface {
@@ -266,4 +268,16 @@ func (e *Environment) Get(key string) (Object, bool) {
 		return e.outer.Get(key)
 	}
 	return nil, false
+}
+
+type CompiledFunction struct {
+	Instructions code.Instructions
+}
+
+func (cf *CompiledFunction) Type() ObjectType {
+	return COMPILED_FUNCTION_OBJ
+}
+
+func (cf *CompiledFunction) Inspect() string {
+	return fmt.Sprint("CompiledFunction[%p]", cf)
 }

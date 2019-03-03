@@ -32,6 +32,9 @@ const (
 	OpSetGlobal
 	OpPop
 	OpNull
+	OpCall
+	OpReturnValue
+	OpReturn
 )
 
 type Definition struct {
@@ -62,6 +65,9 @@ var definitionMap = map[OpCode]*Definition{
 	OpSetGlobal:       &Definition{"OpSetGlobal", []int{2}},
 	OpPop:             &Definition{"OpPop", []int{}},
 	OpNull:            &Definition{"OpNull", []int{}},
+	OpCall:            &Definition{"OpCall", []int{}},
+	OpReturnValue:     &Definition{"OpReturnValue", []int{}},
+	OpReturn:          &Definition{"OpReturn", []int{}},
 }
 
 func Lookup(code OpCode) (*Definition, error) {

@@ -7,22 +7,60 @@ import (
 	"object"
 )
 
-type Compiler struct {
+type CompilationScope struct {
 	instructions code.Instructions
-	constants    []object.Object
 
 	lastOpCodeStartPos       int
 	secondLastOpCodeStartPos int
+}
 
+type Compiler struct {
+	constants   []object.Object
 	symbolTable *SymbolTable
+
+	scopes     []CompilationScope
+	scopeIndex int
 }
 
 func New() *Compiler {
-	return &Compiler{instructions: []byte{}, constants: []object.Object{}, symbolTable: NewSymbolTable()}
+	mainScope := CompilationScope{
+		instructions:             []byte{},
+		lastOpCodeStartPos:       0,
+		secondLastOpCodeStartPos: 0,
+	}
+	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: []object.Object{}, symbolTable: NewSymbolTable()}
 }
 
 func NewWithStates(constants []object.Object, symbolTable *SymbolTable) *Compiler {
-	return &Compiler{instructions: []byte{}, constants: constants, symbolTable: symbolTable}
+	mainScope := CompilationScope{
+		instructions:             []byte{},
+		lastOpCodeStartPos:       0,
+		secondLastOpCodeStartPos: 0,
+	}
+
+	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: constants, symbolTable: symbolTable}
+}
+
+func (c *Compiler) currentInstructions() code.Instructions {
+	return c.scopes[c.scopeIndex].instructions
+}
+
+func (c *Compiler) enterScope() {
+	scope := CompilationScope{
+		instructions:             []byte{},
+		lastOpCodeStartPos:       0,
+		secondLastOpCodeStartPos: 0,
+	}
+
+	c.scopes = append(c.scopes, scope)
+	c.scopeIndex++
+}
+
+func (c *Compiler) leaveScope() code.Instructions {
+	instructions := c.currentInstructions()
+	c.scopes = c.scopes[:len(c.scopes)-1]
+	c.scopeIndex--
+	return instructions
 }
 
 func (c *Compiler) addConstant(value object.Object) int {
@@ -31,15 +69,16 @@ func (c *Compiler) addConstant(value object.Object) int {
 }
 
 func (c *Compiler) updateLastOpCodeStartPos(lastOpCodeStartPos int) {
-	secondLast := c.lastOpCodeStartPos
-	c.lastOpCodeStartPos = lastOpCodeStartPos
-	c.secondLastOpCodeStartPos = secondLast
+	secondLast := c.scopes[c.scopeIndex].lastOpCodeStartPos
+	c.scopes[c.scopeIndex].lastOpCodeStartPos = lastOpCodeStartPos
+	c.scopes[c.scopeIndex].secondLastOpCodeStartPos = secondLast
 }
 
 func (c *Compiler) emit(op code.OpCode, operands ...int) int {
 	ins := code.Make(op, operands...)
-	startPos := len(c.instructions)
-	c.instructions = append(c.instructions, ins...)
+	startPos := len(c.currentInstructions())
+	updatedInstructions := append(c.currentInstructions(), ins...)
+	c.scopes[c.scopeIndex].instructions = updatedInstructions
 	c.updateLastOpCodeStartPos(startPos)
 	return startPos
 }
@@ -96,19 +135,19 @@ func (c *Compiler) compileInfixExpression(node *ast.InfixExpression) error {
 }
 
 func (c *Compiler) replaceOperands(opCodeStartPos int, newOperands ...int) {
-	codeToReplace := c.instructions[opCodeStartPos]
+	codeToReplace := c.currentInstructions()[opCodeStartPos]
 	newIns := code.Make(code.OpCode(codeToReplace), newOperands...)
 	for i, ins := range newIns {
-		c.instructions[i+opCodeStartPos] = ins
+		c.scopes[c.scopeIndex].instructions[i+opCodeStartPos] = ins
 	}
 }
 
 func (c *Compiler) removeLastOpPop() {
-	lastOpCode := code.OpCode(c.instructions[c.lastOpCodeStartPos])
+	lastOpCode := code.OpCode(c.currentInstructions()[c.scopes[c.scopeIndex].lastOpCodeStartPos])
 	if lastOpCode == code.OpPop {
-		c.instructions = c.instructions[:c.lastOpCodeStartPos]
-		c.lastOpCodeStartPos = c.secondLastOpCodeStartPos
-		c.secondLastOpCodeStartPos = -1
+		c.scopes[c.scopeIndex].instructions = c.currentInstructions()[:c.scopes[c.scopeIndex].lastOpCodeStartPos]
+		c.scopes[c.scopeIndex].lastOpCodeStartPos = c.scopes[c.scopeIndex].secondLastOpCodeStartPos
+		c.scopes[c.scopeIndex].secondLastOpCodeStartPos = -1
 	}
 }
 
@@ -169,7 +208,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.removeLastOpPop()
 
 		jumpPos := c.emit(code.OpJump, 9999)
-		endOfThenBody := len(c.instructions)
+		endOfThenBody := len(c.currentInstructions())
 		c.replaceOperands(jumpNotTruethyPos, endOfThenBody)
 
 		if node.ElseBody == nil {
@@ -187,7 +226,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.removeLastOpPop()
 		}
 
-		endOfElseBody := len(c.instructions)
+		endOfElseBody := len(c.currentInstructions())
 		c.replaceOperands(jumpPos, endOfElseBody)
 	case *ast.LetStatement:
 		err := c.Compile(node.Value)
@@ -242,6 +281,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.String:
 		v := &object.String{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))
+	case *ast.FunctionExpression:
+
 	default:
 		return fmt.Errorf("unknown node type %T", node)
 	}
@@ -250,7 +291,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 }
 
 func (c *Compiler) Bytecode() *Bytecode {
-	return &Bytecode{Instructions: c.instructions, Constants: c.constants}
+	return &Bytecode{Instructions: c.currentInstructions(), Constants: c.constants}
 }
 
 type Bytecode struct {

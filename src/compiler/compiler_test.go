@@ -12,7 +12,7 @@ import (
 type compileTestCase struct {
 	input              string
 	expectInstructions []code.Instructions
-	expectConstants    []object.Object
+	expectConstants    []interface{}
 }
 
 func parse(input string) (*ast.Program, error) {
@@ -83,7 +83,7 @@ func testString(expect string, actual object.Object) error {
 	return nil
 }
 
-func testConstants(expectConstants []object.Object, actualConstans []object.Object) error {
+func testConstants(expectConstants []interface{}, actualConstans []object.Object) error {
 	if len(expectConstants) != len(actualConstans) {
 		return fmt.Errorf("compare constants length failed. want:%d got:%d",
 			len(expectConstants), len(actualConstans))
@@ -110,7 +110,17 @@ func testConstants(expectConstants []object.Object, actualConstans []object.Obje
 			if err != nil {
 				return err
 			}
+		case *object.CompiledFunction:
+			fn, ok := actual.(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("constant %d - not a function: %T", index, actual)
+			}
+			err := testInstructions(expect.Instructions, fn.Instructions)
+			if err != nil {
+				return fmt.Errorf("constant %d - testInstructions failed: %s", index, err)
+			}
 		}
+
 		index++
 	}
 
@@ -152,12 +162,12 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 	tests := []compileTestCase{
 		{"3", []code.Instructions{code.Make(code.OpConstant, 0),
 			code.Make(code.OpPop)},
-			[]object.Object{&object.Integer{Value: 3}}},
+			[]interface{}{&object.Integer{Value: 3}}},
 		{"-3", []code.Instructions{
 			code.Make(code.OpConstant, 0),
 			code.Make(code.OpMinus),
 			code.Make(code.OpPop)},
-			[]object.Object{&object.Integer{Value: 3}}},
+			[]interface{}{&object.Integer{Value: 3}}},
 		{"-1 + 2",
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
@@ -165,7 +175,7 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpAdd),
 				code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2}}},
 		{"(1 - 2 - 3) / 100",
@@ -178,7 +188,7 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 3),
 				code.Make(code.OpDivide),
 				code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 3},
@@ -193,7 +203,7 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 3),
 				code.Make(code.OpDivide),
 				code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 3},
@@ -209,7 +219,7 @@ func TestCompileIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpDivide),
 				code.Make(code.OpSubtraction),
 				code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 4},
 				&object.Integer{Value: 4},
 				&object.Integer{Value: 15},
@@ -224,17 +234,17 @@ func TestCompileBoolean(t *testing.T) {
 	tests := []compileTestCase{
 		{"true", []code.Instructions{code.Make(code.OpTrue),
 			code.Make(code.OpPop)},
-			[]object.Object{}},
+			[]interface{}{}},
 		{"false", []code.Instructions{code.Make(code.OpFalse),
 			code.Make(code.OpPop)},
-			[]object.Object{}},
+			[]interface{}{}},
 		{"!false == true", []code.Instructions{
 			code.Make(code.OpFalse),
 			code.Make(code.OpBang),
 			code.Make(code.OpTrue),
 			code.Make(code.OpEqual),
 			code.Make(code.OpPop)},
-			[]object.Object{}},
+			[]interface{}{}},
 		{"((15 + 221) == 236) == (false != (68 < 103))", []code.Instructions{
 			code.Make(code.OpConstant, 0),
 			code.Make(code.OpConstant, 1),
@@ -249,7 +259,7 @@ func TestCompileBoolean(t *testing.T) {
 			code.Make(code.OpNotEqual),
 			code.Make(code.OpEqual),
 			code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 15},
 				&object.Integer{Value: 221},
 				&object.Integer{Value: 236},
@@ -264,7 +274,7 @@ func TestCompileBoolean(t *testing.T) {
 			code.Make(code.OpSubtraction),
 			code.Make(code.OpGreaterEqual),
 			code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 236},
 				&object.Integer{Value: 68},
 				&object.Integer{Value: 25},
@@ -276,7 +286,7 @@ func TestCompileBoolean(t *testing.T) {
 			code.Make(code.OpConstant, 2),
 			code.Make(code.OpGreaterThan),
 			code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 68},
 				&object.Integer{Value: 25},
 				&object.Integer{Value: 21},
@@ -288,7 +298,7 @@ func TestCompileBoolean(t *testing.T) {
 			code.Make(code.OpConstant, 2),
 			code.Make(code.OpGreaterEqual),
 			code.Make(code.OpPop)},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 68},
 				&object.Integer{Value: 25},
 				&object.Integer{Value: 21},
@@ -311,7 +321,7 @@ func TestConditional(t *testing.T) {
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 100},
 				&object.Integer{Value: 9999},
 			}},
@@ -326,7 +336,7 @@ func TestConditional(t *testing.T) {
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 100},
 				&object.Integer{Value: 9999},
 			}},
@@ -341,7 +351,7 @@ func TestConditional(t *testing.T) {
 				code.Make(code.OpConstant, 2),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 100},
 				&object.Integer{Value: 50},
 				&object.Integer{Value: 9999},
@@ -363,7 +373,7 @@ func TestGetSetGlobal(t *testing.T) {
 				code.Make(code.OpSetGlobal, 1),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 			},
@@ -377,7 +387,7 @@ func TestGetSetGlobal(t *testing.T) {
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 			},
 		},
@@ -394,7 +404,7 @@ func TestGetSetGlobal(t *testing.T) {
 				code.Make(code.OpGetGlobal, 1),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 			},
 		},
@@ -410,7 +420,7 @@ func TestArray(t *testing.T) {
 				code.Make(code.OpArray, 0),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{},
+			[]interface{}{},
 		},
 		{`[1,2,3][0]`,
 			[]code.Instructions{
@@ -422,7 +432,7 @@ func TestArray(t *testing.T) {
 				code.Make(code.OpIndex),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 3},
@@ -442,7 +452,7 @@ func TestArray(t *testing.T) {
 				code.Make(code.OpArray, 4),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 15},
@@ -467,7 +477,7 @@ func TestArray(t *testing.T) {
 				code.Make(code.OpIndex),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 15},
@@ -489,7 +499,7 @@ func TestHash(t *testing.T) {
 				code.Make(code.OpHash, 0),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{},
+			[]interface{}{},
 		},
 		{`{1:2,3:4}`,
 			[]code.Instructions{
@@ -500,7 +510,7 @@ func TestHash(t *testing.T) {
 				code.Make(code.OpHash, 2),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 3},
@@ -520,7 +530,7 @@ func TestHash(t *testing.T) {
 				code.Make(code.OpIndex),
 				code.Make(code.OpPop),
 			},
-			[]object.Object{
+			[]interface{}{
 				&object.Integer{Value: 1},
 				&object.Integer{Value: 2},
 				&object.Integer{Value: 3},
@@ -534,3 +544,27 @@ func TestHash(t *testing.T) {
 
 	runTests(t, tests)
 }
+
+// func TestFunctions(t *testing.T) {
+// 	tests := []compileTestCase{
+// 		{
+// 			input: `fn() {return 100 + 200}`,
+// 			expectConstants: []interface{}{
+// 				100,
+// 				200,
+// 				[]code.Instructions{
+// 					code.Make(code.OpConstant, 0),
+// 					code.Make(code.OpConstant, 1),
+// 					code.Make(code.OpAdd),
+// 					code.Make(code.OpReturnValue),
+// 				},
+// 			},
+// 			expectInstructions: []code.Instructions{
+// 				code.Make(code.OpConstant, 2),
+// 				code.Make(code.OpPop),
+// 			},
+// 		},
+// 	}
+
+// 	runTests(t, tests)
+// }
