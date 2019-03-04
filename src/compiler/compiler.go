@@ -41,8 +41,12 @@ func NewWithStates(constants []object.Object, symbolTable *SymbolTable) *Compile
 	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: constants, symbolTable: symbolTable}
 }
 
+func (c *Compiler) currentScope() *CompilationScope {
+	return &c.scopes[c.scopeIndex]
+}
+
 func (c *Compiler) currentInstructions() code.Instructions {
-	return c.scopes[c.scopeIndex].instructions
+	return c.currentScope().instructions
 }
 
 func (c *Compiler) enterScope() {
@@ -68,18 +72,18 @@ func (c *Compiler) addConstant(value object.Object) int {
 	return len(c.constants) - 1
 }
 
-func (c *Compiler) updateLastOpCodeStartPos(lastOpCodeStartPos int) {
-	secondLast := c.scopes[c.scopeIndex].lastOpCodeStartPos
-	c.scopes[c.scopeIndex].lastOpCodeStartPos = lastOpCodeStartPos
-	c.scopes[c.scopeIndex].secondLastOpCodeStartPos = secondLast
+func (c *Compiler) shiftLastOpCodeStartPos(lastOpCodeStartPos int) {
+	secondLast := c.currentScope().lastOpCodeStartPos
+	c.currentScope().lastOpCodeStartPos = lastOpCodeStartPos
+	c.currentScope().secondLastOpCodeStartPos = secondLast
 }
 
 func (c *Compiler) emit(op code.OpCode, operands ...int) int {
 	ins := code.Make(op, operands...)
 	startPos := len(c.currentInstructions())
-	updatedInstructions := append(c.currentInstructions(), ins...)
-	c.scopes[c.scopeIndex].instructions = updatedInstructions
-	c.updateLastOpCodeStartPos(startPos)
+	newInstructions := append(c.currentInstructions(), ins...)
+	c.currentScope().instructions = newInstructions
+	c.shiftLastOpCodeStartPos(startPos)
 	return startPos
 }
 
@@ -138,16 +142,16 @@ func (c *Compiler) replaceOperands(opCodeStartPos int, newOperands ...int) {
 	codeToReplace := c.currentInstructions()[opCodeStartPos]
 	newIns := code.Make(code.OpCode(codeToReplace), newOperands...)
 	for i, ins := range newIns {
-		c.scopes[c.scopeIndex].instructions[i+opCodeStartPos] = ins
+		c.currentScope().instructions[i+opCodeStartPos] = ins
 	}
 }
 
 func (c *Compiler) removeLastOpPop() {
-	lastOpCode := code.OpCode(c.currentInstructions()[c.scopes[c.scopeIndex].lastOpCodeStartPos])
+	lastOpCode := code.OpCode(c.currentInstructions()[c.currentScope().lastOpCodeStartPos])
 	if lastOpCode == code.OpPop {
-		c.scopes[c.scopeIndex].instructions = c.currentInstructions()[:c.scopes[c.scopeIndex].lastOpCodeStartPos]
-		c.scopes[c.scopeIndex].lastOpCodeStartPos = c.scopes[c.scopeIndex].secondLastOpCodeStartPos
-		c.scopes[c.scopeIndex].secondLastOpCodeStartPos = -1
+		c.currentScope().instructions = c.currentInstructions()[:c.currentScope().lastOpCodeStartPos]
+		c.currentScope().lastOpCodeStartPos = c.currentScope().secondLastOpCodeStartPos
+		c.currentScope().secondLastOpCodeStartPos = -1
 	}
 }
 
@@ -281,8 +285,23 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.String:
 		v := &object.String{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))
+	case *ast.ReturnStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+		c.emit(code.OpReturnValue)
 	case *ast.FunctionExpression:
+		c.enterScope()
 
+		err := c.Compile(node.Body)
+		if err != nil {
+			return fmt.Errorf("compile function %s failed", node.Name)
+		}
+
+		instructions := c.leaveScope()
+		fn := &object.CompiledFunction{Instructions: instructions}
+		c.emit(code.OpConstant, c.addConstant(fn))
 	default:
 		return fmt.Errorf("unknown node type %T", node)
 	}
