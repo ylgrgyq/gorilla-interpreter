@@ -140,19 +140,29 @@ func (c *Compiler) compileInfixExpression(node *ast.InfixExpression) error {
 
 func (c *Compiler) replaceOperands(opCodeStartPos int, newOperands ...int) {
 	codeToReplace := c.currentInstructions()[opCodeStartPos]
-	newIns := code.Make(code.OpCode(codeToReplace), newOperands...)
+	c.replaceInstructions(opCodeStartPos, code.OpCode(codeToReplace), newOperands...)
+}
+
+func (c *Compiler) replaceInstructions(opCodeStartPos int, op code.OpCode, newOperands ...int) {
+	newIns := code.Make(code.OpCode(op), newOperands...)
 	for i, ins := range newIns {
 		c.currentScope().instructions[i+opCodeStartPos] = ins
 	}
 }
 
-func (c *Compiler) removeLastOpPop() {
-	lastOpCode := code.OpCode(c.currentInstructions()[c.currentScope().lastOpCodeStartPos])
-	if lastOpCode == code.OpPop {
-		c.currentScope().instructions = c.currentInstructions()[:c.currentScope().lastOpCodeStartPos]
-		c.currentScope().lastOpCodeStartPos = c.currentScope().secondLastOpCodeStartPos
-		c.currentScope().secondLastOpCodeStartPos = -1
+func (c *Compiler) lastOpIs(testOp code.OpCode) bool {
+	if len(c.currentInstructions()) == 0 {
+		return false
 	}
+
+	lastOpCode := code.OpCode(c.currentInstructions()[c.currentScope().lastOpCodeStartPos])
+	return lastOpCode == testOp
+}
+
+func (c *Compiler) removeLastOp() {
+	c.currentScope().instructions = c.currentInstructions()[:c.currentScope().lastOpCodeStartPos]
+	c.currentScope().lastOpCodeStartPos = c.currentScope().secondLastOpCodeStartPos
+	c.currentScope().secondLastOpCodeStartPos = -1
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
@@ -209,7 +219,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		// remove last OpPop to keep the last value of ThenBody in stack
-		c.removeLastOpPop()
+		if c.lastOpIs(code.OpPop) {
+			c.removeLastOp()
+		}
 
 		jumpPos := c.emit(code.OpJump, 9999)
 		endOfThenBody := len(c.currentInstructions())
@@ -227,7 +239,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 
 			// same reason as remove last OpPop from ThenBody
-			c.removeLastOpPop()
+			c.removeLastOp()
 		}
 
 		endOfElseBody := len(c.currentInstructions())
@@ -297,6 +309,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 		err := c.Compile(node.Body)
 		if err != nil {
 			return fmt.Errorf("compile function %s failed", node.Name)
+		}
+
+		if c.lastOpIs(code.OpPop){
+			c.replaceInstructions(c.currentScope().lastOpCodeStartPos, code.OpReturnValue)
+		}
+		
+		if !c.lastOpIs(code.OpReturnValue) {
+			c.emit(code.OpReturn)
 		}
 
 		instructions := c.leaveScope()

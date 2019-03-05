@@ -543,40 +543,52 @@ func TestFunctions(t *testing.T) {
 				code.Make(code.OpPop),
 			},
 		},
-		//{
-		//	input: `fn() {100 + 200}`,
-		//	expectConstants: []interface{}{
-		//		100,
-		//		200,
-		//		[]code.Instructions{
-		//			code.Make(code.OpConstant, 0),
-		//			code.Make(code.OpConstant, 1),
-		//			code.Make(code.OpAdd),
-		//			code.Make(code.OpReturnValue),
-		//		},
-		//	},
-		//	expectInstructions: []code.Instructions{
-		//		code.Make(code.OpConstant, 2),
-		//		code.Make(code.OpPop),
-		//	},
-		//},
-		//{
-		//	input: `fn() { 100;  200}`,
-		//	expectConstants: []interface{}{
-		//		100,
-		//		200,
-		//		[]code.Instructions{
-		//			code.Make(code.OpConstant, 0),
-		//			code.Make(code.OpPop),
-		//			code.Make(code.OpConstant, 1),
-		//			code.Make(code.OpReturnValue),
-		//		},
-		//	},
-		//	expectInstructions: []code.Instructions{
-		//		code.Make(code.OpConstant, 2),
-		//		code.Make(code.OpPop),
-		//	},
-		//},
+		{
+			input: `fn() {100 + 200}`,
+			expectConstants: []interface{}{
+				100,
+				200,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { 100;  200}`,
+			expectConstants: []interface{}{
+				100,
+				200,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpPop),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { }`,
+			expectConstants: []interface{}{
+				[]code.Instructions{
+					code.Make(code.OpReturn),
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+			},
+		},
 	}
 
 	runTests(t, tests)
