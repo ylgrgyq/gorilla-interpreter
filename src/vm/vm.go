@@ -342,7 +342,9 @@ func (v *VM) Run() error {
 			v.currentFrame().ip = targetPos - 1
 		case code.OpReturnValue:
 			v.popFrame()
-
+		case code.OpReturn:
+			v.popFrame()
+			err = v.pushStack(object.NULL)
 		case code.OpCall:
 			fn, ok := v.popStack().(*object.CompiledFunction)
 			if !ok {
