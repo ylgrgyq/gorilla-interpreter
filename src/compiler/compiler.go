@@ -314,7 +314,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if c.lastOpIs(code.OpPop){
 			c.replaceInstructions(c.currentScope().lastOpCodeStartPos, code.OpReturnValue)
 		}
-		
+
 		if !c.lastOpIs(code.OpReturnValue) {
 			c.emit(code.OpReturn)
 		}
