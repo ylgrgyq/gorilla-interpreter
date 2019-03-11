@@ -369,10 +369,8 @@ func TestGetSetGlobal(t *testing.T) {
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpPop),
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpSetGlobal, 1),
-				code.Make(code.OpPop),
 			},
 			[]interface{}{
 				1,
@@ -384,7 +382,6 @@ func TestGetSetGlobal(t *testing.T) {
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpPop),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpPop),
 			},
@@ -398,10 +395,8 @@ func TestGetSetGlobal(t *testing.T) {
 			[]code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpPop),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpSetGlobal, 1),
-				code.Make(code.OpPop),
 				code.Make(code.OpGetGlobal, 1),
 				code.Make(code.OpPop),
 			},
@@ -586,6 +581,39 @@ func TestFunctions(t *testing.T) {
 			},
 			expectInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { 25 }()`,
+			expectConstants: []interface{}{
+				25,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpCall),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `let noArg = fn() { 25 }
+					noArg()`,
+			expectConstants: []interface{}{
+				25,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpCall),
 				code.Make(code.OpPop),
 			},
 		},

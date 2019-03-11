@@ -34,10 +34,10 @@ func New(bytecode *compiler.Bytecode) *VM {
 	return &VM{
 		frames:     frames,
 		frameIndex: 0,
-		constants: bytecode.Constants,
-		stack:     make([]object.Object, StackSize),
-		sp:        -1,
-		globals:   make([]object.Object, GlobalSize),
+		constants:  bytecode.Constants,
+		stack:      make([]object.Object, StackSize),
+		sp:         -1,
+		globals:    make([]object.Object, GlobalSize),
 	}
 }
 
@@ -234,10 +234,12 @@ func isTruethy(obj object.Object) bool {
 func (v *VM) Run() error {
 	var err error
 	var ip int
+	var skip int
 	var ins code.Instructions
 
 	for v.currentFrame().ip < len(v.currentFrame().Instructions()) {
 		ip = v.currentFrame().ip
+		skip = 1
 		ins = v.currentFrame().Instructions()
 
 		c := code.OpCode(ins[ip])
@@ -245,19 +247,19 @@ func (v *VM) Run() error {
 		switch c {
 		case code.OpConstant:
 			index := code.ReadUint16(ins[ip+1:])
-			ip += 2
+			skip = 3
 
 			err = v.pushStack(v.constants[index])
 		case code.OpSetGlobal:
 			index := code.ReadUint16(ins[ip+1:])
-			ip += 2
+			skip = 3
 			globalV := v.popStack()
 			v.globals[index] = globalV
 		case code.OpGetGlobal:
 			index := code.ReadUint16(ins[ip+1:])
-			ip += 2
+			skip = 3
 			globalV := v.globals[index]
-			v.pushStack(globalV)
+			err = v.pushStack(globalV)
 		case code.OpNull:
 			err = v.pushStack(object.NULL)
 		case code.OpBang:
@@ -278,7 +280,7 @@ func (v *VM) Run() error {
 					err = fmt.Errorf("index must be Integer for array, got: %v", index)
 					break
 				}
-				v.pushStack(coll.Elements[i.Value])
+				err = v.pushStack(coll.Elements[i.Value])
 			case *object.HashTable:
 				i, ok := index.(object.Hashable)
 				if !ok {
@@ -287,9 +289,9 @@ func (v *VM) Run() error {
 				}
 				ret, ok := coll.Pair[i.Hash()]
 				if !ok {
-					v.pushStack(object.NULL)
+					err = v.pushStack(object.NULL)
 				} else {
-					v.pushStack(ret.Value)
+					err = v.pushStack(ret.Value)
 				}
 			}
 		case code.OpTrue:
@@ -298,7 +300,7 @@ func (v *VM) Run() error {
 			err = v.pushStack(object.FALSE)
 		case code.OpArray:
 			length := int(code.ReadUint16(ins[ip+1:]))
-			ip += 2
+			skip = 3
 
 			elems := make([]object.Object, length)
 			for i := length - 1; i >= 0; i-- {
@@ -309,7 +311,7 @@ func (v *VM) Run() error {
 			err = v.pushStack(&object.Array{Elements: elems})
 		case code.OpHash:
 			length := int(code.ReadUint16(ins[ip+1:]))
-			ip += 2
+			skip = 3
 
 			pairs := make(map[object.HashKey]object.HashPair)
 			for i := length - 1; i >= 0; i-- {
@@ -328,18 +330,32 @@ func (v *VM) Run() error {
 			v.popStack()
 		case code.OpJumptNotTruethy:
 			targetPos := int(code.ReadUint16(ins[ip+1:]))
-			ip += 2
+			skip = 3
 
 			conditionVal := v.popStack()
 			if !isTruethy(conditionVal) {
-				ip = targetPos - 1
+				v.currentFrame().ip = targetPos - 1
+				skip = 1
 			}
 		case code.OpJump:
 			targetPos := int(code.ReadUint16(ins[ip+1:]))
-			ip = targetPos - 1
+			v.currentFrame().ip = targetPos - 1
+		case code.OpReturnValue:
+			v.popFrame()
+
+		case code.OpCall:
+			fn, ok := v.popStack().(*object.CompiledFunction)
+			if !ok {
+				err = fmt.Errorf("calling non-function %T", fn)
+				break
+			}
+
+			frame := NewFrame(fn)
+			v.pushFrame(frame)
+			skip = 0
 		}
 
-		v.currentFrame().ip++
+		v.currentFrame().ip += skip
 
 		if err != nil {
 			return err

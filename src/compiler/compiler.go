@@ -252,7 +252,6 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		symbol := c.symbolTable.Define(node.Name.Value)
 		c.emit(code.OpSetGlobal, symbol.Index)
-		c.emit(code.OpPop)
 	case *ast.ArrayLiteral:
 		var err error
 		for _, e := range node.Elements {
@@ -322,6 +321,13 @@ func (c *Compiler) Compile(node ast.Node) error {
 		instructions := c.leaveScope()
 		fn := &object.CompiledFunction{Instructions: instructions}
 		c.emit(code.OpConstant, c.addConstant(fn))
+	case *ast.CallExpression:
+		err := c.Compile(node.Function)
+		if err != nil {
+			return err
+		}
+
+		c.emit(code.OpCall)
 	default:
 		return fmt.Errorf("unknown node type %T", node)
 	}

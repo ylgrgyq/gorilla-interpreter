@@ -232,3 +232,12 @@ func TestHash(t *testing.T) {
 
 	runTests(t, tests)
 }
+
+func TestFunction(t *testing.T) {
+	tests := []vmTestCase {
+		{"let fivePlusTen = fn(){ 5 + 10 }" +
+			"fivePlusTen()", 15},
+	}
+
+	runTests(t, tests)
+}
