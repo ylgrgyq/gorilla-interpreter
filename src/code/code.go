@@ -30,6 +30,8 @@ const (
 	OpJump
 	OpGetGlobal
 	OpSetGlobal
+	OpSetLocal
+	OpGetLocal
 	OpPop
 	OpNull
 	OpCall
@@ -63,6 +65,8 @@ var definitionMap = map[OpCode]*Definition{
 	OpJump:            &Definition{"OpJump", []int{2}},
 	OpGetGlobal:       &Definition{"OpGetGlobal", []int{2}},
 	OpSetGlobal:       &Definition{"OpSetGlobal", []int{2}},
+	OpGetLocal:        &Definition{"OpGetLocal", []int{1}},
+	OpSetLocal:        &Definition{"OpSetLocal", []int{1}},
 	OpPop:             &Definition{"OpPop", []int{}},
 	OpNull:            &Definition{"OpNull", []int{}},
 	OpCall:            &Definition{"OpCall", []int{}},
@@ -101,6 +105,8 @@ func Make(op OpCode, operands ...int) []byte {
 	for i, operand := range operands {
 		expectWidth := def.OperandWiths[i]
 		switch expectWidth {
+		case 1:
+			instructions[offset] = byte(operand)
 		case 2:
 			binary.BigEndian.PutUint16(instructions[offset:], uint16(operand))
 		}
@@ -114,6 +120,10 @@ func ReadUint16(bs Instructions) uint16 {
 	return binary.BigEndian.Uint16(bs)
 }
 
+func ReadUint8(bs Instructions) uint8 {
+	return uint8(bs[0])
+}
+
 func ReadOperand(def *Definition, ins Instructions) ([]int, int) {
 	ret := make([]int, len(def.OperandWiths))
 
@@ -122,6 +132,8 @@ func ReadOperand(def *Definition, ins Instructions) ([]int, int) {
 		switch width {
 		case 2:
 			ret[i] = int(ReadUint16(ins[offset:]))
+		case 1:
+			ret[i] = int(ReadUint8(ins[offset:]))
 		}
 
 		offset += width

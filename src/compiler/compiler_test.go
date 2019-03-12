@@ -446,7 +446,7 @@ func TestArray(t *testing.T) {
 				code.Make(code.OpPop),
 			},
 			[]interface{}{
-				1,2,15,"hello","world",
+				1, 2, 15, "hello", "world",
 			},
 		},
 		{`[1, 2 + 15, false, "hello" + "world"][26 + 1]`,
@@ -467,7 +467,7 @@ func TestArray(t *testing.T) {
 				code.Make(code.OpPop),
 			},
 			[]interface{}{
-				1,2,15,"hello","world",26,1,
+				1, 2, 15, "hello", "world", 26, 1,
 			},
 		},
 	}
@@ -494,7 +494,7 @@ func TestHash(t *testing.T) {
 				code.Make(code.OpPop),
 			},
 			[]interface{}{
-				1,2,3,4,
+				1, 2, 3, 4,
 			},
 		},
 		{`{1:2,3:4,5:6}[3]`,
@@ -511,7 +511,7 @@ func TestHash(t *testing.T) {
 				code.Make(code.OpPop),
 			},
 			[]interface{}{
-				1,2,3,4,5,6,3,
+				1, 2, 3, 4, 5, 6, 3,
 			},
 		},
 	}
@@ -614,6 +614,67 @@ func TestFunctions(t *testing.T) {
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpCall),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestLetStatement(t *testing.T) {
+	tests := []compileTestCase{
+		{
+			input: `let num = 100
+				fn () {num}`,
+			expectConstants: []interface{}{
+				100,
+				[]code.Instructions{
+					code.Make(code.OpGetGlobal, 0),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions:[]code.Instructions {
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn () { let num = 100; num }`,
+			expectConstants: []interface{}{
+				100,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions:[]code.Instructions {
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn () { let a = 100; let b = 200; a + b }`,
+			expectConstants: []interface{}{
+				100,
+				200,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpSetLocal, 1),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions:[]code.Instructions {
+				code.Make(code.OpConstant, 2),
 				code.Make(code.OpPop),
 			},
 		},

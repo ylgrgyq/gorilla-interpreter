@@ -8,15 +8,15 @@ import (
 )
 
 type CompilationScope struct {
-	instructions code.Instructions
+	instructions     code.Instructions
+	localSymbolTable *SymbolTable
 
 	lastOpCodeStartPos       int
 	secondLastOpCodeStartPos int
 }
 
 type Compiler struct {
-	constants   []object.Object
-	symbolTable *SymbolTable
+	constants []object.Object
 
 	scopes     []CompilationScope
 	scopeIndex int
@@ -25,20 +25,22 @@ type Compiler struct {
 func New() *Compiler {
 	mainScope := CompilationScope{
 		instructions:             []byte{},
+		localSymbolTable:         NewSymbolTable(),
 		lastOpCodeStartPos:       0,
 		secondLastOpCodeStartPos: 0,
 	}
-	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: []object.Object{}, symbolTable: NewSymbolTable()}
+	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: []object.Object{}}
 }
 
 func NewWithStates(constants []object.Object, symbolTable *SymbolTable) *Compiler {
 	mainScope := CompilationScope{
 		instructions:             []byte{},
+		localSymbolTable:         symbolTable,
 		lastOpCodeStartPos:       0,
 		secondLastOpCodeStartPos: 0,
 	}
 
-	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: constants, symbolTable: symbolTable}
+	return &Compiler{scopes: []CompilationScope{mainScope}, scopeIndex: 0, constants: constants}
 }
 
 func (c *Compiler) currentScope() *CompilationScope {
@@ -52,6 +54,7 @@ func (c *Compiler) currentInstructions() code.Instructions {
 func (c *Compiler) enterScope() {
 	scope := CompilationScope{
 		instructions:             []byte{},
+		localSymbolTable:         NewEnclosedSymbolTable(c.currentScope().localSymbolTable),
 		lastOpCodeStartPos:       0,
 		secondLastOpCodeStartPos: 0,
 	}
@@ -250,8 +253,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
-		symbol := c.symbolTable.Define(node.Name.Value)
-		c.emit(code.OpSetGlobal, symbol.Index)
+		symbol := c.currentScope().localSymbolTable.Define(node.Name.Value)
+		if symbol.Scope == GlobalScope {
+			c.emit(code.OpSetGlobal, symbol.Index)
+		} else {
+			c.emit(code.OpSetLocal, symbol.Index)
+		}
 	case *ast.ArrayLiteral:
 		var err error
 		for _, e := range node.Elements {
@@ -278,12 +285,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpHash, len(node.Pair))
 	case *ast.Identifier:
 		identifier := node.Value
-		symbol, ok := c.symbolTable.Resolve(identifier)
+		symbol, ok := c.currentScope().localSymbolTable.Resolve(identifier)
 		if !ok {
 			return fmt.Errorf("undefined variable %s", identifier)
 		}
 
-		c.emit(code.OpGetGlobal, symbol.Index)
+		if symbol.Scope == GlobalScope {
+			c.emit(code.OpGetGlobal, symbol.Index)
+		} else {
+			c.emit(code.OpGetLocal, symbol.Index)
+		}
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))
@@ -310,7 +321,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("compile function %s failed", node.Name)
 		}
 
-		if c.lastOpIs(code.OpPop){
+		if c.lastOpIs(code.OpPop) {
 			c.replaceInstructions(c.currentScope().lastOpCodeStartPos, code.OpReturnValue)
 		}
 
