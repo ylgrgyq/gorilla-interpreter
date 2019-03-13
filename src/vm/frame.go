@@ -8,12 +8,14 @@ import (
 type Frame struct {
 	fn *object.CompiledFunction
 	ip int
+	locals []object.Object
 }
 
 func NewFrame(fn *object.CompiledFunction) *Frame {
 	return &Frame{
 		fn: fn,
 		ip: 0,
+		locals: make([]object.Object, fn.NumLocals),
 	}
 }
 

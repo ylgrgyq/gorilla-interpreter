@@ -345,6 +345,16 @@ func (v *VM) Run() error {
 		case code.OpReturn:
 			v.popFrame()
 			err = v.pushStack(object.NULL)
+		case code.OpSetLocal:
+			index := code.ReadUint8(ins[ip+1:])
+			skip = 2
+			localV := v.popStack()
+			v.currentFrame().locals[index] = localV
+		case code.OpGetLocal:
+			index := code.ReadUint8(ins[ip+1:])
+			skip = 2
+			localV := v.currentFrame().locals[index]
+			err = v.pushStack(localV)
 		case code.OpCall:
 			fn, ok := v.popStack().(*object.CompiledFunction)
 			if !ok {

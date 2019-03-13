@@ -63,11 +63,12 @@ func (c *Compiler) enterScope() {
 	c.scopeIndex++
 }
 
-func (c *Compiler) leaveScope() code.Instructions {
-	instructions := c.currentInstructions()
-	c.scopes = c.scopes[:len(c.scopes)-1]
+func (c *Compiler) leaveScope() CompilationScope {
+	lastScopeIndex := len(c.scopes)-1
+	lastScope := c.scopes[lastScopeIndex]
+	c.scopes = c.scopes[:lastScopeIndex]
 	c.scopeIndex--
-	return instructions
+	return lastScope
 }
 
 func (c *Compiler) addConstant(value object.Object) int {
@@ -329,8 +330,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpReturn)
 		}
 
-		instructions := c.leaveScope()
-		fn := &object.CompiledFunction{Instructions: instructions}
+		scope := c.leaveScope()
+		fn := &object.CompiledFunction{Instructions: scope.instructions, NumLocals:scope.localSymbolTable.numDefinitions}
 		c.emit(code.OpConstant, c.addConstant(fn))
 	case *ast.CallExpression:
 		err := c.Compile(node.Function)

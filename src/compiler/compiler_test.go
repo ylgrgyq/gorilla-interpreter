@@ -120,6 +120,22 @@ func testConstants(expectConstants []interface{}, actualConstans []object.Object
 			if err != nil {
 				return fmt.Errorf("constant %d - testInstructions failed: %s", index, err)
 			}
+		case object.CompiledFunction:
+			fn, ok := actual.(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("constant %d - not a function: %T", index, actual)
+			}
+
+			err := testInstructions(expect.Instructions, fn.Instructions)
+			if err != nil {
+				return fmt.Errorf("constant %d - testInstructions failed: %s", index, err)
+			}
+			if expect.NumLocals != fn.NumLocals {
+				return fmt.Errorf("constant %d - test NumLocals failed. want: %d, got: %d",
+					index, expect.NumLocals, fn.NumLocals)
+			}
+		default:
+			return fmt.Errorf("constant %d - unknown expect type %T", index, expect)
 		}
 
 		index++
@@ -629,12 +645,15 @@ func TestLetStatement(t *testing.T) {
 				fn () {num}`,
 			expectConstants: []interface{}{
 				100,
-				[]code.Instructions{
-					code.Make(code.OpGetGlobal, 0),
-					code.Make(code.OpReturnValue),
+				object.CompiledFunction{
+					Instructions:code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpGetGlobal, 0),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals:0,
 				},
 			},
-			expectInstructions:[]code.Instructions {
+			expectInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpConstant, 1),
@@ -645,14 +664,17 @@ func TestLetStatement(t *testing.T) {
 			input: `fn () { let num = 100; num }`,
 			expectConstants: []interface{}{
 				100,
-				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
-					code.Make(code.OpSetLocal, 0),
-					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpReturnValue),
+				object.CompiledFunction{
+					Instructions:code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpConstant, 0),
+						code.Make(code.OpSetLocal, 0),
+						code.Make(code.OpGetLocal, 0),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals:1,
 				},
 			},
-			expectInstructions:[]code.Instructions {
+			expectInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpPop),
 			},
@@ -662,18 +684,21 @@ func TestLetStatement(t *testing.T) {
 			expectConstants: []interface{}{
 				100,
 				200,
-				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
-					code.Make(code.OpSetLocal, 0),
-					code.Make(code.OpConstant, 1),
-					code.Make(code.OpSetLocal, 1),
-					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpGetLocal, 1),
-					code.Make(code.OpAdd),
-					code.Make(code.OpReturnValue),
+				object.CompiledFunction{
+					Instructions:code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpConstant, 0),
+						code.Make(code.OpSetLocal, 0),
+						code.Make(code.OpConstant, 1),
+						code.Make(code.OpSetLocal, 1),
+						code.Make(code.OpGetLocal, 0),
+						code.Make(code.OpGetLocal, 1),
+						code.Make(code.OpAdd),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals:2,
 				},
 			},
-			expectInstructions:[]code.Instructions {
+			expectInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 2),
 				code.Make(code.OpPop),
 			},
