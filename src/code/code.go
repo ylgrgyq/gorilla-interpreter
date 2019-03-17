@@ -69,7 +69,7 @@ var definitionMap = map[OpCode]*Definition{
 	OpSetLocal:        &Definition{"OpSetLocal", []int{1}},
 	OpPop:             &Definition{"OpPop", []int{}},
 	OpNull:            &Definition{"OpNull", []int{}},
-	OpCall:            &Definition{"OpCall", []int{}},
+	OpCall:            &Definition{"OpCall", []int{1}},
 	OpReturnValue:     &Definition{"OpReturnValue", []int{}},
 	OpReturn:          &Definition{"OpReturn", []int{}},
 }

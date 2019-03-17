@@ -339,7 +339,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
-		c.emit(code.OpCall)
+		for _, e := range node.Arguments {
+			err := c.Compile(e)
+			if err != nil {
+				return err
+			}
+		}
+
+		c.emit(code.OpCall, len(node.Arguments))
 	default:
 		return fmt.Errorf("unknown node type %T", node)
 	}
