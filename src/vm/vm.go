@@ -26,7 +26,7 @@ type VM struct {
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
-	mainFrame := NewFrame(&object.CompiledFunction{Instructions: bytecode.Instructions})
+	mainFrame := NewFrame(&object.CompiledFunction{Instructions: bytecode.Instructions}, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -58,7 +58,9 @@ func (v *VM) pushFrame(f *Frame) {
 
 func (v *VM) popFrame() *Frame {
 	v.frameIndex--
-	return v.frames[v.frameIndex+1]
+	frame := v.frames[v.frameIndex+1]
+	v.sp = frame.basePointer - 1
+	return frame
 }
 
 func (v *VM) pushStack(o object.Object) error {
@@ -231,6 +233,14 @@ func isTruethy(obj object.Object) bool {
 	}
 }
 
+func (v *VM) setLocal(index int, localV object.Object) {
+	v.stack[v.currentFrame().basePointer+index+1] = localV
+}
+
+func (v *VM) getLocal(index int) object.Object {
+	return v.stack[v.currentFrame().basePointer+index+1]
+}
+
 func (v *VM) Run() error {
 	var err error
 	var ip int
@@ -341,28 +351,37 @@ func (v *VM) Run() error {
 			targetPos := int(code.ReadUint16(ins[ip+1:]))
 			v.currentFrame().ip = targetPos - 1
 		case code.OpReturnValue:
+			ret := v.popStack()
 			v.popFrame()
+			err = v.pushStack(ret)
+			skip = 2
 		case code.OpReturn:
 			v.popFrame()
 			err = v.pushStack(object.NULL)
+			skip = 2
 		case code.OpSetLocal:
 			index := code.ReadUint8(ins[ip+1:])
 			skip = 2
 			localV := v.popStack()
-			v.currentFrame().locals[index] = localV
+			v.setLocal(int(index), localV)
 		case code.OpGetLocal:
 			index := code.ReadUint8(ins[ip+1:])
 			skip = 2
-			localV := v.currentFrame().locals[index]
+			localV := v.getLocal(int(index))
 			err = v.pushStack(localV)
 		case code.OpCall:
-			fn, ok := v.popStack().(*object.CompiledFunction)
+			args := code.ReadUint8(ins[ip+1:])
+
+			fn, ok := v.stack[v.sp-int(args)].(*object.CompiledFunction)
 			if !ok {
 				err = fmt.Errorf("calling non-function %T", fn)
 				break
 			}
 
-			frame := NewFrame(fn)
+			//v.currentFrame().ip += 2
+			basePointer := v.sp - fn.NumParameters
+			frame := NewFrame(fn, basePointer)
+			v.sp = frame.basePointer + fn.NumLocals
 			v.pushFrame(frame)
 			skip = 0
 		}

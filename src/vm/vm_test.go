@@ -236,22 +236,41 @@ func TestHash(t *testing.T) {
 func TestFunction(t *testing.T) {
 	tests := []vmTestCase{
 		{"let fivePlusTen = fn(){ 5 + 10 }" +
-			"fivePlusTen()", 15},
+			"fivePlusTen()",
+			15},
 
 		{"let noReturn = fn(){ }" +
 			"noReturn()", nil},
 		{`
-          let noReturn = fn() { };
-          let noReturnTwo = fn() { noReturn(); };
-          noReturn();
-          noReturnTwo();
-          `, nil},
+        let noReturn = fn() { };
+        let noReturnTwo = fn() { noReturn(); };
+        noReturn();
+        noReturnTwo();
+        `, nil},
 		{`
-           let returnsOne = fn() { 1; };
-           let returnsOneReturner = fn() { returnsOne; };
-           returnsOneReturner()();
-           `,
+        let returnsOne = fn() { 1; };
+        let returnsOneReturner = fn() { returnsOne; };
+        returnsOneReturner()();
+        `,
 			1,
+		},
+		{`
+         let identity = fn(a) { a; };
+         identity(5);
+         `,
+			5,
+		},
+		{`
+         let sum = fn(a, b) { a + b; };
+         sum(100, 200);
+         `,
+			300,
+		},
+		{`
+         let someFn = fn(a, b) {let c = 100;  a + b + c; };
+         someFn(100, 200);
+         `,
+			400,
 		},
 	}
 

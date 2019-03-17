@@ -64,7 +64,7 @@ func (c *Compiler) enterScope() {
 }
 
 func (c *Compiler) leaveScope() CompilationScope {
-	lastScopeIndex := len(c.scopes)-1
+	lastScopeIndex := len(c.scopes) - 1
 	lastScope := c.scopes[lastScopeIndex]
 	c.scopes = c.scopes[:lastScopeIndex]
 	c.scopeIndex--
@@ -317,6 +317,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.FunctionExpression:
 		c.enterScope()
 
+		for _, parameter := range node.Parameters {
+			c.currentScope().localSymbolTable.Define(parameter.Value)
+		}
+
 		err := c.Compile(node.Body)
 		if err != nil {
 			return fmt.Errorf("compile function %s failed", node.Name)
@@ -331,7 +335,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		scope := c.leaveScope()
-		fn := &object.CompiledFunction{Instructions: scope.instructions, NumLocals:scope.localSymbolTable.numDefinitions}
+		fn := &object.CompiledFunction{Instructions: scope.instructions,
+			NumLocals:     scope.localSymbolTable.numDefinitions,
+			NumParameters: len(node.Parameters)}
 		c.emit(code.OpConstant, c.addConstant(fn))
 	case *ast.CallExpression:
 		err := c.Compile(node.Function)

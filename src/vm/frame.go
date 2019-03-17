@@ -8,14 +8,15 @@ import (
 type Frame struct {
 	fn *object.CompiledFunction
 	ip int
-	locals []object.Object
+	// base pointer points to the CompileFunction for this Frame
+	basePointer int
 }
 
-func NewFrame(fn *object.CompiledFunction) *Frame {
+func NewFrame(fn *object.CompiledFunction, basePointer int) *Frame {
 	return &Frame{
 		fn: fn,
 		ip: 0,
-		locals: make([]object.Object, fn.NumLocals),
+		basePointer: basePointer,
 	}
 }
 

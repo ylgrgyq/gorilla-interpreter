@@ -640,69 +640,70 @@ func TestFunctions(t *testing.T) {
 
 func TestLetStatement(t *testing.T) {
 	tests := []compileTestCase{
-		//{
-		//	input: `let num = 100
-		//		fn () {num}`,
-		//	expectConstants: []interface{}{
-		//		100,
-		//		object.CompiledFunction{
-		//			Instructions: code.FlattenInstructions([]code.Instructions{
-		//				code.Make(code.OpGetGlobal, 0),
-		//				code.Make(code.OpReturnValue),
-		//			}),
-		//			NumLocals: 0,
-		//		},
-		//	},
-		//	expectInstructions: []code.Instructions{
-		//		code.Make(code.OpConstant, 0),
-		//		code.Make(code.OpSetGlobal, 0),
-		//		code.Make(code.OpConstant, 1),
-		//		code.Make(code.OpPop),
-		//	},
-		//},
-		//{
-		//	input: `fn () { let num = 100; num }`,
-		//	expectConstants: []interface{}{
-		//		100,
-		//		object.CompiledFunction{
-		//			Instructions: code.FlattenInstructions([]code.Instructions{
-		//				code.Make(code.OpConstant, 0),
-		//				code.Make(code.OpSetLocal, 0),
-		//				code.Make(code.OpGetLocal, 0),
-		//				code.Make(code.OpReturnValue),
-		//			}),
-		//			NumLocals: 1,
-		//		},
-		//	},
-		//	expectInstructions: []code.Instructions{
-		//		code.Make(code.OpConstant, 1),
-		//		code.Make(code.OpPop),
-		//	},
-		//},
-		//{
-		//	input: `fn () { let a = 100; let b = 200; a + b }`,
-		//	expectConstants: []interface{}{
-		//		100,
-		//		200,
-		//		object.CompiledFunction{
-		//			Instructions: code.FlattenInstructions([]code.Instructions{
-		//				code.Make(code.OpConstant, 0),
-		//				code.Make(code.OpSetLocal, 0),
-		//				code.Make(code.OpConstant, 1),
-		//				code.Make(code.OpSetLocal, 1),
-		//				code.Make(code.OpGetLocal, 0),
-		//				code.Make(code.OpGetLocal, 1),
-		//				code.Make(code.OpAdd),
-		//				code.Make(code.OpReturnValue),
-		//			}),
-		//			NumLocals: 2,
-		//		},
-		//	},
-		//	expectInstructions: []code.Instructions{
-		//		code.Make(code.OpConstant, 2),
-		//		code.Make(code.OpPop),
-		//	},
-		//},
+		{
+			input: `let num = 100
+				fn () {num}`,
+			expectConstants: []interface{}{
+				100,
+				object.CompiledFunction{
+					Instructions: code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpGetGlobal, 0),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals: 0,
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn () { let num = 100; num }`,
+			expectConstants: []interface{}{
+				100,
+				object.CompiledFunction{
+					Instructions: code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpConstant, 0),
+						code.Make(code.OpSetLocal, 0),
+						code.Make(code.OpGetLocal, 0),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals: 1,
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn () { let a = 100; let b = 200; a + b }`,
+			expectConstants: []interface{}{
+				100,
+				200,
+				object.CompiledFunction{
+					Instructions: code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpConstant, 0),
+						code.Make(code.OpSetLocal, 0),
+						code.Make(code.OpConstant, 1),
+						code.Make(code.OpSetLocal, 1),
+						code.Make(code.OpGetLocal, 0),
+						code.Make(code.OpGetLocal, 1),
+						code.Make(code.OpAdd),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals:     2,
+					NumParameters: 0,
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
 		{
 			input: `let oneArg = fn (a) { }; oneArg(24)`,
 			expectConstants: []interface{}{
@@ -737,6 +738,41 @@ func TestLetStatement(t *testing.T) {
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpConstant, 2),
 				code.Make(code.OpConstant, 3),
+				code.Make(code.OpCall, 3),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `let sum = fn (a, b, c) { let d = 1; a + b + c + d;}; sum(24, 25, 26)`,
+			expectConstants: []interface{}{
+				1,
+				object.CompiledFunction{
+					Instructions: code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpConstant, 0),
+						code.Make(code.OpSetLocal, 3),
+						code.Make(code.OpGetLocal, 0),
+						code.Make(code.OpGetLocal, 1),
+						code.Make(code.OpAdd),
+						code.Make(code.OpGetLocal, 2),
+						code.Make(code.OpAdd),
+						code.Make(code.OpGetLocal, 3),
+						code.Make(code.OpAdd),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals:4,
+					NumParameters:3,
+				},
+				24,
+				25,
+				26,
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpConstant, 4),
 				code.Make(code.OpCall, 3),
 				code.Make(code.OpPop),
 			},
