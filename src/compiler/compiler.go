@@ -23,9 +23,15 @@ type Compiler struct {
 }
 
 func New() *Compiler {
+	symbol := NewSymbolTable()
+
+	for i, v := range object.Builtins {
+		symbol.DefineBuiltin(i, v.Name)
+	}
+
 	mainScope := CompilationScope{
 		instructions:             []byte{},
-		localSymbolTable:         NewSymbolTable(),
+		localSymbolTable:         symbol,
 		lastOpCodeStartPos:       0,
 		secondLastOpCodeStartPos: 0,
 	}
@@ -293,6 +299,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		if symbol.Scope == GlobalScope {
 			c.emit(code.OpGetGlobal, symbol.Index)
+		} else if symbol.Scope == BuiltinScope {
+			c.emit(code.OpGetBuiltin, symbol.Index)
 		} else {
 			c.emit(code.OpGetLocal, symbol.Index)
 		}

@@ -81,7 +81,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return val
 		}
 
-		if builtin, ok := builtins[node.Value]; ok {
+		builtin := object.FindBuiltinByName(node.Value)
+		if builtin != nil {
 			return builtin
 		}
 

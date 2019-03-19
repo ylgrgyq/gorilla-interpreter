@@ -5,6 +5,7 @@ type SymbolScope string
 const (
 	GlobalScope SymbolScope = "GLOBAL"
 	LocalScope  SymbolScope = "LOCAL"
+	BuiltinScope SymbolScope = "BUILTIN"
 )
 
 type Symbol struct {
@@ -37,6 +38,12 @@ func (t *SymbolTable) Define(name string) Symbol {
 
 	t.store[name] = s
 	t.numDefinitions++
+	return s
+}
+
+func (t *SymbolTable) DefineBuiltin(index int, name string) Symbol {
+	s := Symbol{Name: name, Index: index, Scope: BuiltinScope}
+	t.store[name] = s
 	return s
 }
 

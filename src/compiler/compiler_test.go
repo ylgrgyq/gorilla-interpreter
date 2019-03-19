@@ -781,3 +781,44 @@ func TestLetStatement(t *testing.T) {
 
 	runTests(t, tests)
 }
+
+func TestBuiltin(t *testing.T) {
+	tests := []compileTestCase {
+		{
+			input: `len([]); push([], 1);`,
+			expectConstants:[]interface{}{1},
+			expectInstructions:[]code.Instructions{
+				code.Make(code.OpGetBuiltin, 0),
+				code.Make(code.OpArray, 0),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpPop),
+				code.Make(code.OpGetBuiltin, 4),
+				code.Make(code.OpArray, 0),
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpCall, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { len([]) }`,
+			expectConstants:[]interface{}{
+				object.CompiledFunction{
+					Instructions: code.FlattenInstructions([]code.Instructions{
+						code.Make(code.OpGetBuiltin, 0),
+						code.Make(code.OpArray, 0),
+						code.Make(code.OpCall, 1),
+						code.Make(code.OpReturnValue),
+					}),
+					NumLocals:0,
+					NumParameters:0,
+				},
+			},
+			expectInstructions:[]code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
