@@ -71,7 +71,7 @@ var Builtins = []struct {
 			if length > 0 {
 				return &Array{Elements: array.Elements[1:]}
 			}
-			return &Array{}
+			return NULL
 		}}},
 	{"push", &Builtin{
 		Fn: func(args ...Object) Object {
@@ -81,7 +81,7 @@ var Builtins = []struct {
 
 			array, ok := args[0].(*Array)
 			if !ok {
-				return newError(fmt.Sprintf("wrong argument passed to function rest. expect Array, got=%q", args[0].Type()))
+				return newError(fmt.Sprintf("wrong argument passed to function push. expect Array, got=%q", args[0].Type()))
 			}
 
 			length := len(array.Elements)
@@ -102,6 +102,10 @@ func FindBuiltinByName(name string) *Builtin {
 	}
 
 	return nil
+}
+
+func FindBuiltinByIndex(index int) *Builtin {
+	return Builtins[index].Butiltin
 }
 
 func newError(msg string) *Error {

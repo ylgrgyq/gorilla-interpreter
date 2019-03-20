@@ -270,6 +270,11 @@ func (v *VM) Run() error {
 			skip = 3
 			globalV := v.globals[index]
 			err = v.pushStack(globalV)
+		case code.OpGetBuiltin:
+			index := code.ReadUint8(ins[ip+1:])
+			skip = 2
+			builtin := object.FindBuiltinByIndex(int(index))
+			err = v.pushStack(builtin)
 		case code.OpNull:
 			err = v.pushStack(object.NULL)
 		case code.OpBang:
@@ -372,18 +377,17 @@ func (v *VM) Run() error {
 		case code.OpCall:
 			args := code.ReadUint8(ins[ip+1:])
 
-			fn, ok := v.stack[v.sp-int(args)].(*object.CompiledFunction)
-			if !ok {
-				err = fmt.Errorf("calling non-function %T", fn)
-				break
+			callee := v.stack[v.sp-int(args)]
+			switch callee := callee.(type) {
+			case *object.CompiledFunction:
+				err = v.callFunction(callee, int(args))
+				skip = 0
+			case *object.Builtin:
+				err = v.callBuiltin(callee, int(args))
+				skip = 2
+			default:
+				err = fmt.Errorf("calling non-function %T", callee)
 			}
-
-			//v.currentFrame().ip += 2
-			basePointer := v.sp - fn.NumParameters
-			frame := NewFrame(fn, basePointer)
-			v.sp = frame.basePointer + fn.NumLocals
-			v.pushFrame(frame)
-			skip = 0
 		}
 
 		v.currentFrame().ip += skip
@@ -394,4 +398,28 @@ func (v *VM) Run() error {
 	}
 
 	return nil
+}
+
+func (v *VM) callFunction(fn *object.CompiledFunction, numArgs int) error {
+	if fn.NumParameters != numArgs {
+		return fmt.Errorf("wrong number of arguments: want=%d got=%d", fn.NumParameters, numArgs)
+	}
+
+	basePointer := v.sp - numArgs
+
+	frame := NewFrame(fn, basePointer)
+	v.sp = frame.basePointer + fn.NumLocals
+	v.pushFrame(frame)
+	return nil
+}
+
+func (v *VM) callBuiltin(fn *object.Builtin, numArgs int) error {
+	args := v.stack[v.sp-numArgs + 1:v.sp + 1]
+	ret := fn.Fn(args...)
+	v.sp = v.sp - numArgs - 1
+	if ret != nil {
+		return v.pushStack(ret)
+	} else {
+		return v.pushStack(object.NULL)
+	}
 }

@@ -121,6 +121,16 @@ func testExpectedObject(t *testing.T, input string, expcet interface{}, actual o
 		if err != nil {
 			t.Errorf("test boolean object failed for input: %s. %s", input, err)
 		}
+	case *object.Error:
+		errObj, ok := actual.(*object.Error)
+		if !ok {
+			t.Errorf("object is not Error: %T (%+v)", actual, actual)
+			return
+		}
+		if errObj.Msg != expected.Msg {
+			t.Errorf("wrong error message. expected=%q, got=%q",
+				expected.Msg, errObj.Msg)
+		}
 	default:
 		t.Errorf("unknown type %T for input %s", expcet, input)
 	}
@@ -317,6 +327,37 @@ func TestLocalBinding(t *testing.T) {
            minusOne() + minusTwo();`,
 			97,
 		},
+	}
+	runTests(t, tests)
+}
+
+func TestBuiltinFunctions(t *testing.T) {
+	tests := []vmTestCase{
+		{`len("")`, 0},
+		{`len("four")`, 4},
+		{`len("hello world")`, 11},
+		{
+			`len(1)`,
+			&object.Error{Msg: "argument to `len` not supported, got INTEGER"},
+		},
+		{`len("one", "two")`,
+			&object.Error{Msg: "wrong number of arguments. expect=1, got=2"}},
+		{`len([1, 2, 3])`, 3},
+		{`len([])`, 0},
+		{`first([1, 2, 3])`, 1},
+		{`first([])`, nil},
+		{`first(1)`,
+			&object.Error{Msg: "wrong argument passed to function first. expect Array, got=\"INTEGER\""},
+		},
+		{`last([1, 2, 3])`, 3},
+		{`last([])`, nil},
+		{`last(1)`,
+			&object.Error{Msg: "wrong argument passed to function last. expect Array, got=\"INTEGER\""}},
+		{`rest([1, 2, 3])`, []interface{}{2, 3}},
+		{`rest([])`, nil},
+		{`push([], 1)`, []interface{}{1}},
+		{`push(1, 1)`,
+			&object.Error{Msg: "wrong argument passed to function push. expect Array, got=\"INTEGER\""}},
 	}
 	runTests(t, tests)
 }
