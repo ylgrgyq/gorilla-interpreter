@@ -9,7 +9,7 @@ var Builtins = []struct {
 	{"len", &Builtin{
 		Fn: func(args ...Object) Object {
 			if len(args) != 1 {
-				return newError(fmt.Sprintf("wrong number of arguments. expect=%d, got=%d", 1, len(args)))
+				return newError(fmt.Sprintf("wrong number of arguments. expected=%d, got=%d", 1, len(args)))
 			}
 
 			switch arg := args[0].(type) {
@@ -25,12 +25,12 @@ var Builtins = []struct {
 	{"first", &Builtin{
 		Fn: func(args ...Object) Object {
 			if len(args) != 1 {
-				return newError(fmt.Sprintf("wrong number of arguments for function first. expect=%d, got=%d", 1, len(args)))
+				return newError(fmt.Sprintf("wrong number of arguments for function first. expected=%d, got=%d", 1, len(args)))
 			}
 
 			array, ok := args[0].(*Array)
 			if !ok {
-				return newError(fmt.Sprintf("wrong argument passed to function first. expect Array, got=%q", args[0].Type()))
+				return newError(fmt.Sprintf("wrong argument passed to function first. expected Array, got=%q", args[0].Type()))
 			}
 
 			length := len(array.Elements)
@@ -42,12 +42,12 @@ var Builtins = []struct {
 	{"last", &Builtin{
 		Fn: func(args ...Object) Object {
 			if len(args) != 1 {
-				return newError(fmt.Sprintf("wrong number of arguments for function last. expect=%d, got=%d", 1, len(args)))
+				return newError(fmt.Sprintf("wrong number of arguments for function last. expected=%d, got=%d", 1, len(args)))
 			}
 
 			array, ok := args[0].(*Array)
 			if !ok {
-				return newError(fmt.Sprintf("wrong argument passed to function last. expect Array, got=%q", args[0].Type()))
+				return newError(fmt.Sprintf("wrong argument passed to function last. expected Array, got=%q", args[0].Type()))
 			}
 
 			length := len(array.Elements)
@@ -59,12 +59,12 @@ var Builtins = []struct {
 	{"rest", &Builtin{
 		Fn: func(args ...Object) Object {
 			if len(args) != 1 {
-				return newError(fmt.Sprintf("wrong number of arguments for function rest. expect=%d, got=%d", 1, len(args)))
+				return newError(fmt.Sprintf("wrong number of arguments for function rest. expected=%d, got=%d", 1, len(args)))
 			}
 
 			array, ok := args[0].(*Array)
 			if !ok {
-				return newError(fmt.Sprintf("wrong argument passed to function rest. expect Array, got=%q", args[0].Type()))
+				return newError(fmt.Sprintf("wrong argument passed to function rest. expected Array, got=%q", args[0].Type()))
 			}
 
 			length := len(array.Elements)
@@ -76,12 +76,12 @@ var Builtins = []struct {
 	{"push", &Builtin{
 		Fn: func(args ...Object) Object {
 			if len(args) != 2 {
-				return newError(fmt.Sprintf("wrong number of arguments for function push. expect=%d, got=%d", 2, len(args)))
+				return newError(fmt.Sprintf("wrong number of arguments for function push. expected=%d, got=%d", 2, len(args)))
 			}
 
 			array, ok := args[0].(*Array)
 			if !ok {
-				return newError(fmt.Sprintf("wrong argument passed to function push. expect Array, got=%q", args[0].Type()))
+				return newError(fmt.Sprintf("wrong argument passed to function push. expected Array, got=%q", args[0].Type()))
 			}
 
 			length := len(array.Elements)

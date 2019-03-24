@@ -263,15 +263,23 @@ func (v *VM) Run() error {
 
 			err = v.pushStack(v.constants[index])
 		case code.OpClosure:
-			index := code.ReadUint16(ins[ip+1:])
+			constIndex := code.ReadUint16(ins[ip+1:])
 			skip = 4
 
-			constant := v.constants[index]
+			constant := v.constants[constIndex]
 			fn, ok := constant.(*object.CompiledFunction)
 			if !ok {
 				err = fmt.Errorf("not a function: %+v", constant)
 			} else {
-				err = v.pushStack(&object.Closure{Fn: fn})
+				numFrees := code.ReadUint8(ins[ip+3:])
+				frees := make([]object.Object, numFrees)
+				// 检查 stack 上有没有足够的值
+				for i := 0; i < int(numFrees); i++ {
+					f := v.popStack()
+					frees[i] = f
+				}
+
+				err = v.pushStack(&object.Closure{Fn: fn, Free: frees})
 			}
 		case code.OpSetGlobal:
 			index := code.ReadUint16(ins[ip+1:])
@@ -288,6 +296,11 @@ func (v *VM) Run() error {
 			skip = 2
 			builtin := object.FindBuiltinByIndex(int(index))
 			err = v.pushStack(builtin)
+		case code.OpGetFree:
+			index := code.ReadUint8(ins[ip+1:])
+			skip = 2
+			free := v.currentFrame().clo.Free[int(index)]
+			err = v.pushStack(free)
 		case code.OpNull:
 			err = v.pushStack(object.NULL)
 		case code.OpBang:

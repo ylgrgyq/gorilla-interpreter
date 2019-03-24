@@ -10,8 +10,8 @@ import (
 )
 
 type vmTestCase struct {
-	input  string
-	expect interface{}
+	input    string
+	expected interface{}
 }
 
 func parse(input string) (*ast.Program, error) {
@@ -114,7 +114,7 @@ func testExpectedObject(t *testing.T, input string, expcet interface{}, actual o
 		}
 
 		// Hash 的测试有点麻烦，我不想让实现出来的 Map 仅仅是为了好测试而搞成有序的，非常丑
-		// 但不搞成有序的，actual 里面的 k v 都是 object.Object，在不知道对象类型的情况下无法去跟 expect 做对比
+		// 但不搞成有序的，actual 里面的 k v 都是 object.Object，在不知道对象类型的情况下无法去跟 expected 做对比
 		// 所以我决定不测了
 	case nil:
 		err := testNilObject(actual)
@@ -157,7 +157,7 @@ func runTests(t *testing.T, tests []vmTestCase) {
 			t.Fatalf("run program for input: %q failed. error is: %q", test.input, err)
 		}
 
-		testExpectedObject(t, test.input, test.expect, v.StackLastTop())
+		testExpectedObject(t, test.input, test.expected, v.StackLastTop())
 		if v.StackTop() != nil {
 			t.Fatalf("left %s in stack.", v.StackTop().Inspect())
 		}
@@ -341,25 +341,60 @@ func TestBuiltinFunctions(t *testing.T) {
 			&object.Error{Msg: "argument to `len` not supported, got INTEGER"},
 		},
 		{`len("one", "two")`,
-			&object.Error{Msg: "wrong number of arguments. expect=1, got=2"}},
+			&object.Error{Msg: "wrong number of arguments. expected=1, got=2"}},
 		{`len([1, 2, 3])`, 3},
 		{`len([])`, 0},
 		{`first([1, 2, 3])`, 1},
 		{`first([])`, nil},
 		{`first(1)`,
-			&object.Error{Msg: "wrong argument passed to function first. expect Array, got=\"INTEGER\""},
+			&object.Error{Msg: "wrong argument passed to function first. expected Array, got=\"INTEGER\""},
 		},
 		{`last([1, 2, 3])`, 3},
 		{`last([])`, nil},
 		{`last(1)`,
-			&object.Error{Msg: "wrong argument passed to function last. expect Array, got=\"INTEGER\""}},
+			&object.Error{Msg: "wrong argument passed to function last. expected Array, got=\"INTEGER\""}},
 		{`rest([1, 2, 3])`, []interface{}{2, 3}},
 		{`rest([])`, nil},
 		{`push([], 1)`, []interface{}{1}},
 		{`push(1, 1)`,
-			&object.Error{Msg: "wrong argument passed to function push. expect Array, got=\"INTEGER\""}},
+			&object.Error{Msg: "wrong argument passed to function push. expected Array, got=\"INTEGER\""}},
 	}
 	runTests(t, tests)
 }
 
-func TestClosures(t *testing.T) {}
+func TestClosures(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+           let newClosure = fn(a) {
+               fn() { a; };
+           };
+           let closure = newClosure(99);
+           closure();
+           `,
+			expected: 99,
+		},
+		{
+			input: `
+           let newAdder = fn(a, b) {
+               fn(c) { a + b + c };
+           };
+           let adder = newAdder(1, 2);
+           adder(8);
+           `,
+			expected: 11,
+		},
+		{
+			input: `
+           let newAdder = fn(a, b) {
+               let c = a + b;
+               fn(d) { c + d };
+           };
+           let adder = newAdder(1, 2);
+           adder(8);
+           `,
+			expected: 11,
+		},
+	}
+	runTests(t, tests)
+}
