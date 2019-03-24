@@ -26,7 +26,9 @@ type VM struct {
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
-	mainFrame := NewFrame(&object.CompiledFunction{Instructions: bytecode.Instructions}, 0)
+	fn := &object.CompiledFunction{Instructions: bytecode.Instructions}
+	clo := &object.Closure{Fn: fn, Free: make([]object.Object, 0)}
+	mainFrame := NewFrame(clo, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -260,6 +262,17 @@ func (v *VM) Run() error {
 			skip = 3
 
 			err = v.pushStack(v.constants[index])
+		case code.OpClosure:
+			index := code.ReadUint16(ins[ip+1:])
+			skip = 4
+
+			constant := v.constants[index]
+			fn, ok := constant.(*object.CompiledFunction)
+			if !ok {
+				err = fmt.Errorf("not a function: %+v", constant)
+			} else {
+				err = v.pushStack(&object.Closure{Fn: fn})
+			}
 		case code.OpSetGlobal:
 			index := code.ReadUint16(ins[ip+1:])
 			skip = 3
@@ -379,8 +392,9 @@ func (v *VM) Run() error {
 
 			callee := v.stack[v.sp-int(args)]
 			switch callee := callee.(type) {
-			case *object.CompiledFunction:
-				err = v.callFunction(callee, int(args))
+
+			case *object.Closure:
+				err = v.callClosure(callee, int(args))
 				skip = 0
 			case *object.Builtin:
 				err = v.callBuiltin(callee, int(args))
@@ -400,21 +414,22 @@ func (v *VM) Run() error {
 	return nil
 }
 
-func (v *VM) callFunction(fn *object.CompiledFunction, numArgs int) error {
-	if fn.NumParameters != numArgs {
-		return fmt.Errorf("wrong number of arguments: want=%d got=%d", fn.NumParameters, numArgs)
+func (v *VM) callClosure(clo *object.Closure, numArgs int) error {
+
+	if clo.Fn.NumParameters != numArgs {
+		return fmt.Errorf("wrong number of arguments: want=%d got=%d", clo.Fn.NumParameters, numArgs)
 	}
 
 	basePointer := v.sp - numArgs
 
-	frame := NewFrame(fn, basePointer)
-	v.sp = frame.basePointer + fn.NumLocals
+	frame := NewFrame(clo, basePointer)
+	v.sp = frame.basePointer + clo.Fn.NumLocals
 	v.pushFrame(frame)
 	return nil
 }
 
 func (v *VM) callBuiltin(fn *object.Builtin, numArgs int) error {
-	args := v.stack[v.sp-numArgs + 1:v.sp + 1]
+	args := v.stack[v.sp-numArgs+1 : v.sp+1]
 	ret := fn.Fn(args...)
 	v.sp = v.sp - numArgs - 1
 	if ret != nil {
