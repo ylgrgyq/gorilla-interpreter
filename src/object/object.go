@@ -23,6 +23,7 @@ const (
 	ARRAY_OBJ             = "ARRAY"
 	HASHTABLE_OBJ         = "HASHTABLE"
 	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
+	CLOJURE_OBJ           = "CLOJURE_OBJ"
 )
 
 type Object interface {
@@ -271,8 +272,8 @@ func (e *Environment) Get(key string) (Object, bool) {
 }
 
 type CompiledFunction struct {
-	Instructions code.Instructions
-	NumLocals int
+	Instructions  code.Instructions
+	NumLocals     int
 	NumParameters int
 }
 
@@ -282,4 +283,17 @@ func (cf *CompiledFunction) Type() ObjectType {
 
 func (cf *CompiledFunction) Inspect() string {
 	return fmt.Sprint("CompiledFunction[%p]", cf)
+}
+
+type Closure struct {
+	Fn *CompiledFunction
+	Free []Object
+}
+
+func (c *Closure) Type() ObjectType {
+	return CLOJURE_OBJ
+}
+
+func (c *Closure) Inspect() string {
+	return fmt.Sprint("Closure[%p]", c)
 }

@@ -11,6 +11,7 @@ func TestMake(t *testing.T) {
 		{OpConstant, []int{65534}, []byte{byte(OpConstant), 255, 254}},
 		{OpSetLocal, []int{126}, []byte{byte(OpSetLocal), 126}},
 		{OpAdd, []int{}, []byte{byte(OpAdd)}},
+		{OpClosure, []int{65534, 255}, []byte{byte(OpClosure), 255, 254, 255}},
 	}
 
 	for _, test := range tests {

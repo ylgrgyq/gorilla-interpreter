@@ -38,6 +38,7 @@ const (
 	OpReturnValue
 	OpReturn
 	OpGetBuiltin
+	OpClosure
 )
 
 type Definition struct {
@@ -74,6 +75,7 @@ var definitionMap = map[OpCode]*Definition{
 	OpReturnValue:     &Definition{"OpReturnValue", []int{}},
 	OpReturn:          &Definition{"OpReturn", []int{}},
 	OpGetBuiltin:      &Definition{"OpGetBuiltin", []int{1}},
+	OpClosure:         &Definition{"OpClosure", []int{2, 1}},
 }
 
 func Lookup(code OpCode) (*Definition, error) {
@@ -147,14 +149,15 @@ func ReadOperand(def *Definition, ins Instructions) ([]int, int) {
 func fmtInstruction(def *Definition, operands ...int) string {
 	operandCount := len(def.OperandWiths)
 
-	switch operandCount {
-	case 0:
-		return def.Name
-	case 1:
-		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	ret := fmt.Sprintf("%s", def.Name)
+	for i, op := range operands {
+		if i >= operandCount {
+			break
+		}
+		ret += fmt.Sprintf(" %d", op)
 	}
 
-	return fmt.Sprintf("unhandled operand count for code %s", def.Name)
+	return ret
 }
 
 func InstructionsString(ins Instructions) string {

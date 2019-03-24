@@ -346,7 +346,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		fn := &object.CompiledFunction{Instructions: scope.instructions,
 			NumLocals:     scope.localSymbolTable.numDefinitions,
 			NumParameters: len(node.Parameters)}
-		c.emit(code.OpConstant, c.addConstant(fn))
+		c.emit(code.OpClosure, c.addConstant(fn), 0)
 	case *ast.CallExpression:
 		err := c.Compile(node.Function)
 		if err != nil {
