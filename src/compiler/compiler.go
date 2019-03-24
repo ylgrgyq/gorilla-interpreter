@@ -175,6 +175,19 @@ func (c *Compiler) removeLastOp() {
 	c.currentScope().secondLastOpCodeStartPos = -1
 }
 
+func (c *Compiler) loadSymbol(symbol Symbol) {
+	switch symbol.Scope {
+	case GlobalScope:
+		c.emit(code.OpGetGlobal, symbol.Index)
+	case BuiltinScope:
+		c.emit(code.OpGetBuiltin, symbol.Index)
+	case FreeScope:
+		c.emit(code.OpGetFree, symbol.Index)
+	case LocalScope:
+		c.emit(code.OpGetLocal, symbol.Index)
+	}
+}
+
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
@@ -297,13 +310,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return fmt.Errorf("undefined variable %s", identifier)
 		}
 
-		if symbol.Scope == GlobalScope {
-			c.emit(code.OpGetGlobal, symbol.Index)
-		} else if symbol.Scope == BuiltinScope {
-			c.emit(code.OpGetBuiltin, symbol.Index)
-		} else {
-			c.emit(code.OpGetLocal, symbol.Index)
-		}
+		c.loadSymbol(symbol)
 	case *ast.Integer:
 		v := &object.Integer{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(v))
@@ -343,10 +350,17 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		scope := c.leaveScope()
+		numLocals := scope.localSymbolTable.numDefinitions
+		frees := scope.localSymbolTable.FreeSymbols
+
+		for _, s := range frees {
+			c.loadSymbol(s)
+		}
+
 		fn := &object.CompiledFunction{Instructions: scope.instructions,
-			NumLocals:     scope.localSymbolTable.numDefinitions,
+			NumLocals:     numLocals,
 			NumParameters: len(node.Parameters)}
-		c.emit(code.OpClosure, c.addConstant(fn), 0)
+		c.emit(code.OpClosure, c.addConstant(fn), len(frees))
 	case *ast.CallExpression:
 		err := c.Compile(node.Function)
 		if err != nil {

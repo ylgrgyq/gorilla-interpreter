@@ -361,3 +361,5 @@ func TestBuiltinFunctions(t *testing.T) {
 	}
 	runTests(t, tests)
 }
+
+func TestClosures(t *testing.T) {}
