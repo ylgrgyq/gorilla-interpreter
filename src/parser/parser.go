@@ -157,6 +157,10 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 	letStatement.Value = express
 
+	if fe, ok := express.(*ast.FunctionExpression); ok {
+		fe.Name = letStatement.Name
+	}
+
 	if p.peekTokenTypeIs(token.SEMICOLON) {
 		p.nextToken()
 	}

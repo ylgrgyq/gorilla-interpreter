@@ -185,6 +185,8 @@ func (c *Compiler) loadSymbol(symbol Symbol) {
 		c.emit(code.OpGetFree, symbol.Index)
 	case LocalScope:
 		c.emit(code.OpGetLocal, symbol.Index)
+	case Function:
+		c.emit(code.OpCurrentClosure)
 	}
 }
 
@@ -268,12 +270,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 		endOfElseBody := len(c.currentInstructions())
 		c.replaceOperands(jumpPos, endOfElseBody)
 	case *ast.LetStatement:
+		symbol := c.currentScope().localSymbolTable.Define(node.Name.Value)
 		err := c.Compile(node.Value)
 		if err != nil {
 			return err
 		}
 
-		symbol := c.currentScope().localSymbolTable.Define(node.Name.Value)
 		if symbol.Scope == GlobalScope {
 			c.emit(code.OpSetGlobal, symbol.Index)
 		} else {
@@ -331,6 +333,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 		c.emit(code.OpReturnValue)
 	case *ast.FunctionExpression:
 		c.enterScope()
+
+		if node.Name.Value != "" {
+			c.currentScope().localSymbolTable.DefineFunctionName(node.Name.Value)
+		}
 
 		for _, parameter := range node.Parameters {
 			c.currentScope().localSymbolTable.Define(parameter.Value)

@@ -933,3 +933,61 @@ func TestClosures(t *testing.T) {
 	}
 	runTests(t, tests)
 }
+
+func TestRecursiveFunctions(t *testing.T) {
+	tests := []compileTestCase{
+		{
+			input: `
+           let wrapper = fn() {
+               let countDown = fn(x) {
+                   if (x == 0) {
+                       return 0;
+                   } else {
+                       countDown(x - 1);
+                   } 
+               };
+               countDown(1);
+           };
+           wrapper();
+           `,
+			expectConstants: []interface{}{
+				0,
+				0,
+				1,
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpEqual),
+					code.Make(code.OpJumptNotTruethy, 16),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpReturnValue),
+					code.Make(code.OpJump, 25),
+					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 2),
+					code.Make(code.OpSubtraction),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+				1,
+				[]code.Instructions{
+					code.Make(code.OpClosure, 3, 0),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 4),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectInstructions: []code.Instructions{
+				code.Make(code.OpClosure, 5, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpCall, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runTests(t, tests)
+}

@@ -415,6 +415,9 @@ func (v *VM) Run() error {
 			default:
 				err = fmt.Errorf("calling non-function %T", callee)
 			}
+		case code.OpCurrentClosure:
+			cl := v.currentFrame().clo
+			err = v.pushStack(cl)
 		}
 
 		v.currentFrame().ip += skip
